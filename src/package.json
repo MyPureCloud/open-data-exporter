@@ -1,0 +1,31 @@
+{
+  "name": "open-data-exporter",
+  "version": "0.0.1",
+  "description": "An open source data export tool",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MyPureCloud/open-data-exporter.git"
+  },
+  "keywords": [
+    "purecloud",
+    "open",
+    "data",
+    "exporter",
+    "analytics",
+    "inin",
+    "interactive",
+    "intelligence"
+  ],
+  "author": "ININ Developer Evangelists",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/MyPureCloud/open-data-exporter/issues"
+  },
+  "homepage": "https://github.com/MyPureCloud/open-data-exporter",
+  "dependencies": {
+  	"purecloud_api_sdk_javascript": "0.x.x >=0.72.7",
+  	"q": ">=1.4.1",
+  	"mustache": ">=2.2.1"
+  }
+}
