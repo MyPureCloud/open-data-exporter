@@ -54,6 +54,9 @@ pureCloudSession.login().then(function() {
 			console.log('Final: ' + testDateParser('$currentIntervalStart->{{$currentIntervalStart}}').blue);
 			console.log('Final: ' + testDateParser('Next interval->{{$currentIntervalStart + $interval}}').blue);
 			console.log('Final: ' + testDateParser('complex->{{$currentIntervalStart + $interval + PT5M30S - PT2H42S + P1W}}').blue);
+			
+			processExpressions(config.settings.queries.expression_query);
+			console.log('Query: \n' + JSON.stringify(config.settings.queries.expression_query, null, 2));
 
 			console.log('done');
 		})
@@ -62,8 +65,25 @@ pureCloudSession.login().then(function() {
 		});
 });
 
+function processExpressions(object) {
+	for (var property in object) {
+		if (object.hasOwnProperty(property)) {
+			var propertyType = typeof(object[property]);
+			//console.log('typeof(object[property])->'+propertyType);
+			switch(propertyType){
+				case 'object':
+					processExpressions(object[property]);
+					break;
+				case 'string':
+					object[property] = testDateParser(object[property]);
+					break;
+			}
+		}
+	}
+}
+
 function testDateParser(string) {
-	var haystack = string; 
+	var haystack = string.replace('+',' + '); 
 
 	// Finds expressions, e.g. "{{ stuff + things }}"
 	while ((myArray = varRegex.exec(haystack)) !== null) {
@@ -72,12 +92,12 @@ function testDateParser(string) {
 		// myArray[1] -> stuff + things
 		var msg = '\nFound "' + myArray[0] + '" with matches: "' + myArray[1] + '". \n';
 		msg = msg.cyan;
-		var parts = myArray[1].split(' ');
+		var parts = myArray[1].split(/\s+/);
 		parts.forEach(function(part, index) {
 			msg += '  ['+index+'] ' + part + '\n';
 		})
 		//console.log(msg);
-
+		console.log(JSON.stringify(parts,null,2));
 		var value = parts[0];
 		
 		if (parts.length >= 3) {
