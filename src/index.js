@@ -48,11 +48,12 @@ pureCloudSession.login().then(function() {
 			var output = Mustache.render(config.settings.templates['basic_template'].template, packagedData);
 			console.log(output);
 
-			console.log(testDateParser('The current time is {{$now}} and will be {{ $now + PT30M }} in 30 minutes.').blue);
-			console.log(testDateParser('previous $previousIntervalStart->{{$previousIntervalStart - $interval}}').blue);
-			console.log(testDateParser('$previousIntervalStart->{{$previousIntervalStart}}').blue);
-			console.log(testDateParser('$currentIntervalStart->{{$currentIntervalStart}}').blue);
-			console.log(testDateParser('Next interval->{{$currentIntervalStart + $interval}}').blue);
+			console.log('Final: ' + testDateParser('The current time is {{$now}} and will be {{ $now + PT30M }} in 30 minutes.').blue);
+			console.log('Final: ' + testDateParser('previous $previousIntervalStart->{{$previousIntervalStart - $interval}}').blue);
+			console.log('Final: ' + testDateParser('$previousIntervalStart->{{$previousIntervalStart}}').blue);
+			console.log('Final: ' + testDateParser('$currentIntervalStart->{{$currentIntervalStart}}').blue);
+			console.log('Final: ' + testDateParser('Next interval->{{$currentIntervalStart + $interval}}').blue);
+			console.log('Final: ' + testDateParser('complex->{{$currentIntervalStart + $interval + PT5M30S - PT2H42S + P1W}}').blue);
 
 			console.log('done');
 		})
@@ -66,6 +67,7 @@ function testDateParser(string) {
 
 	// Finds expressions, e.g. "{{ stuff + things }}"
 	while ((myArray = varRegex.exec(haystack)) !== null) {
+		console.log(('haystack->'+haystack).yellow)
 		// myArray[0] -> {{ stuff + things }}
 		// myArray[1] -> stuff + things
 		var msg = '\nFound "' + myArray[0] + '" with matches: "' + myArray[1] + '". \n';
@@ -74,7 +76,7 @@ function testDateParser(string) {
 		parts.forEach(function(part, index) {
 			msg += '  ['+index+'] ' + part + '\n';
 		})
-		console.log(msg);
+		//console.log(msg);
 
 		var value = parts[0];
 		
@@ -82,45 +84,46 @@ function testDateParser(string) {
 			for (i = 1; i < parts.length - 1; i = i + 2) {
 				value = dateMath(value, parts[i], parts[i + 1]);
 			}
-			console.log(('haystack->'+haystack).yellow)
-			console.log(('value->'+value.format()).yellow);
+			value = value.format();
 		} else {
 			value = replaceVariable(value);
 		}
 
 		haystack = haystack.replace(myArray[0], value);
+		console.log(('haystack->'+haystack).cyan)
+		console.log('')
 	}
 
 	return haystack;
 }
 
 function dateMath(input, operator, value) {
-	console.log(('dateMath('+input+', '+operator+', '+value+')').green)
+	//console.log(('dateMath('+input+', '+operator+', '+value+')').green)
 	var parsedInput;
 	var parsedValue;
 
-	console.log('input->'+input+'; type->'+typeof(input));
+	//console.log('input->'+input+'; type->'+typeof(input));
 	if (typeof(input) == 'string')
 		parsedInput = getMoment(replaceVariable(input));
 	else
 		parsedInput = getMoment(input)
 
-	console.log('value->'+value+'; type->'+typeof(value));
-	if (is('String', value) && value.startsWith('$'))
+	//console.log('value->'+value+'; type->'+typeof(value));
+	if (isType(value, 'String') && value.startsWith('$'))
 		parsedValue = getMoment(replaceVariable(value));
 	else
 		parsedValue = getMoment(value)
 
 	switch(operator) {
 		case '+': {
-			console.log('Parsed date -> ' + parsedInput.format())
-			console.log('Adding ' + parsedValue)
+			//console.log('Parsed date -> ' + parsedInput.format())
+			//console.log('Adding ' + parsedValue)
 			return parsedInput.add(parsedValue);
 			break;
 		}
 		case '-': {
-			console.log('Subtracting ' + parsedValue)
-			console.log('Parsed date -> ' + parsedInput.format())
+			//console.log('Subtracting ' + parsedValue)
+			//console.log('Parsed date -> ' + parsedInput.format())
 			return parsedInput.subtract(parsedValue);
 			break;
 		}
@@ -128,13 +131,11 @@ function dateMath(input, operator, value) {
 }
 
 function getMoment(input) {
-	/*
-	console.log('input->'+input+'\n'+
-		'  is String->'+is('String',input)+'\n'+
-		'  is Date->'+is('Date',input)+'\n'+
-		'  is Moment->'+is('Moment',input)+'\n')
-	*/
-	if (is('String', input)) {
+	//console.log(('input->'+input+'\n'+
+	//	'  isType String->'+isType(input, 'String')+'\n'+
+	//	'  isType Date->'+isType(input, 'Date')+'\n'+
+	//	'  isType Moment->'+isType(input, 'Moment')+'\n').dim);
+	if (isType(input, 'String')) {
 		try {
 			var result = isoDateTimeRegex.exec(input);
 			if (result != null) {
@@ -154,10 +155,10 @@ function getMoment(input) {
 			console.log(e.stack.error)
 		}
 	}
-	else if (is('Date', input)) {
+	else if (isType(input, 'Date')) {
 		return moment(input);
 	}
-	else if (is('Moment', input)) {
+	else if (isType(input, 'Moment')) {
 		return input;
 	}
 
@@ -196,7 +197,9 @@ function packageData(data) {
 	}
 }
 
-function is(type, obj) {
-    var clas = Object.prototype.toString.call(obj).slice(8, -1);
-    return obj !== undefined && obj !== null && clas === type;
-}
+function isType(obj, type) { 
+   var funcNameRegex = /function (.{1,})\(/;
+   var results = (funcNameRegex).exec((obj).constructor.toString());
+   var objType = (results && results.length > 1) ? results[1] : "";
+   return objType == type;
+};
