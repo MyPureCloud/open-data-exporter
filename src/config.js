@@ -2,16 +2,13 @@ var fs = require('fs');
 var _ = require('lodash');
 var moment = require('moment');
 
-var Logger = require('./logger');
-
-var log = new Logger('config');
 var config = {};
 
 config.load = function() {
 	// TODO: error handling
 	var configFileData = fs.readFileSync('config.json', 'UTF-8');
 	config.settings = JSON.parse(configFileData);
-	//console.log(JSON.stringify(config.settings, null, 2));
+	config.args = getNodeArgs();
 	
 	// TODO: replace with `config.settings = require('./config.json');` ???
 }
@@ -24,6 +21,7 @@ config.getJobData = function(data, jobName, configurationName) {
 	packagedData.data = data;
 
 	// Populate default vars
+	packagedData.args = config.args;
 	packagedData.vars = {};
 	packagedData.job = config.settings.jobs[jobName];
 	packagedData.configuration = config.settings.configurations[configurationName];
@@ -47,9 +45,6 @@ config.getJobData = function(data, jobName, configurationName) {
 	packagedData.vars.currentHour = now.clone().startOf('hour');
 	packagedData.vars.previousHour = now.clone().startOf('hour').subtract(1, 'hour');
 
-	//log.debug(packagedData.vars.currentHour.format(), 'currentHour')
-	//log.debug(packagedData.vars.previousHour.format(), 'previousHour')
-
 	packagedData.vars.currentIntervalStart = packagedData.vars.currentHour.clone();
 	packagedData.vars.previousIntervalStart = packagedData.vars.currentHour.clone().subtract(interval);
 	for (i=1;i<60;i++) {
@@ -58,16 +53,11 @@ config.getJobData = function(data, jobName, configurationName) {
 			// Interval does not exceed current time, set it
 			packagedData.vars.currentIntervalStart = nextInterval;
 			packagedData.vars.previousIntervalStart = nextInterval.clone().subtract(interval);
-			//log.debug(packagedData.vars.currentIntervalStart.format(), 'currentIntervalStart')
-			//log.debug(packagedData.vars.previousIntervalStart.format(), 'previousIntervalStart')
 		}
 		else {
 			break;
 		}
 	}
-
-	//log.debug(packagedData.vars.currentIntervalStart.format(), 'final currentIntervalStart')
-	//log.debug(packagedData.vars.previousIntervalStart.format(), 'final previousIntervalStart')
 
 	packagedData.vars.currentInterval = packagedData.vars.currentIntervalStart.format() + '/' + packagedData.vars.currentIntervalStart.clone().add(interval).format();
 	packagedData.vars.previousInterval = packagedData.vars.previousIntervalStart.format() + '/' + packagedData.vars.previousIntervalStart.clone().add(interval).format();
@@ -76,7 +66,7 @@ config.getJobData = function(data, jobName, configurationName) {
 	return packagedData;
 }
 
-
+config.load();
 
 module.exports = config;
 
@@ -88,4 +78,40 @@ function setCustomData(obj, customData) {
 	_.forOwn(customData, function(value, key) {
 		obj[key] = value;
 	});
+}
+
+function getNodeArgs() {
+	var args = {}
+
+	// Parse into pretty object
+	for (i = 2; i < process.argv.length; i++) {
+		var arg = process.argv[i];
+		var index = arg.indexOf('=')
+
+		if (index > 0) {
+			// format was key=value
+			var key = arg.substr(0,index);
+			var value = arg.substr(index + 1);
+
+			// Remove leading slash and dash
+			if (key.startsWith('/'))
+				key = key.substr(1);
+			if (key.startsWith('--'))
+				key = key.substr(2);
+
+			args[key.toLowerCase()] = value;
+		} else {
+			// No equals sign, set whole thing as key and value->true
+			
+			// Remove leading slash and dash
+			if (arg.startsWith('/'))
+				arg = arg.substr(1);
+			if (arg.startsWith('--'))
+				arg = arg.substr(2);
+
+			args[arg.toLowerCase()] = true;
+		}
+	}
+
+	return args;
 }

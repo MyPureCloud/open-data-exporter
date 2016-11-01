@@ -14,8 +14,6 @@ var log = new Logger('main');
 
 log.writeBox('Open Data Explorer v' + packageData.version, null, 'cyan');
 
-config.load();
-
 var purecloud = require('purecloud_api_sdk_javascript');
 var pureCloudSession = purecloud.PureCloudSession({
   strategy: 'client-credentials',
@@ -23,7 +21,7 @@ var pureCloudSession = purecloud.PureCloudSession({
   clientSecret: config.settings.clientSecret,
   timeout: 10000
 });
-//pureCloudSession.debugLog = log.info;
+//pureCloudSession.debugLog = console.log;
 pureCloudSession.login().then(function() {
 	var api = new purecloud.AuthorizationApi(pureCloudSession);
 
@@ -40,14 +38,14 @@ pureCloudSession.login().then(function() {
 		.then(function(data) {
 			var jobData = config.getJobData(data, 'basic_job', 'basic_configuration');
 			var output = Mustache.render(config.settings.templates['basic_template'].template, jobData);
-			log.custom('currentInterval transformation:\n'+output, 'gray');
+			log.verbose(output, 'currentInterval transformation:');
 			
 			return doConversationsDetailsQuery(JSON.stringify(config.settings.queries['previousInterval'].query));
 		})
 		.then(function(data) {
 			var jobData = config.getJobData(data, 'basic_job', 'basic_configuration');
 			var output = Mustache.render(config.settings.templates['basic_template'].template, jobData);
-			log.custom('previousInterval transformation:\n'+output, 'gray');
+			log.verbose(output, 'previousInterval transformation:');
 
 			return {};
 		})

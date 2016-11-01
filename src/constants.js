@@ -9,4 +9,12 @@ constants.regex.space = /(\s+)/g;
 constants.strings = {};
 constants.strings.isoDateFormat = 'YYYY-MM-DDTHH:mm:ss.SSSZZ';
 
+constants.logging = {};
+constants.logging.error = 10;
+constants.logging.warning = 20;
+constants.logging.info = 30;
+constants.logging.debug = 40;
+constants.logging.verbose = 50;
+constants.logging.all = 100;
+
 module.exports = constants;

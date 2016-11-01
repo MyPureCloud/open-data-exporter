@@ -1,54 +1,57 @@
 var colors = require('colors/safe');
 var stripAnsi = require('strip-ansi');
 var _ = require('lodash');
-var helpers = require('./helpers');
 
+var helpers = require('./helpers');
+var config = require('./config');
+var constants = require('./constants');
+
+// Set default themes
 colors.setTheme({
-	verbose: [ 'dim' ],
+	error: [ 'bgBlack', 'red' ],
+	warning: [ 'bgYellow', 'black' ],
 	info: [ 'reset' ],
 	debug: [ 'cyan' ],
-	warning: [ 'bgYellow', 'black' ],
-	error: [ 'bgBlack', 'red' ]
+	verbose: [ 'dim' ]
 })
 
 function Logger(topic) {
 	this.topic = topic;
 	this.defaultWidth = process.stdout.columns ? process.stdout.columns : 80;
+	this.logLevel = getLogLevel();
 }
 
 Logger.prototype.setTheme = function(obj) {
 	colors.setTheme(obj);
 }
 
-Logger.prototype.verbose = function(msg) {
-	logMessage(msg, this.topic, 'verbose');
+Logger.prototype.error = function(obj, msg) {
+	if (!this.checkLogLevel(constants.logging.error)) return;
+	logMessage(obj, msg, this.topic, 'error');
 }
 
-Logger.prototype.info = function(msg) {
-	logMessage(msg, this.topic, 'info');
+Logger.prototype.warning = function(obj, msg) {
+	if (!this.checkLogLevel(constants.logging.warning)) return;
+	logMessage(obj, msg, this.topic, 'warning');
 }
 
-Logger.prototype.debug = function(obj, msg='') {
-	var message = obj;
-	if (helpers.isType(obj, 'object') || helpers.isType(obj, 'array')) {
-		message = '\n' + JSON.stringify(obj, null, 2)
-	}
-	if (msg != '') {
-		message = msg + message;
-	}
-	logMessage(message, this.topic, 'debug');
+Logger.prototype.info = function(obj, msg) {
+	if (!this.checkLogLevel(constants.logging.info)) return;
+	logMessage(obj, msg, this.topic, 'info');
 }
 
-Logger.prototype.warning = function(msg) {
-	logMessage(msg, this.topic, 'warning');
+Logger.prototype.debug = function(obj, msg) {
+	if (!this.checkLogLevel(constants.logging.debug)) return;
+	logMessage(obj, msg, this.topic, 'debug');
 }
 
-Logger.prototype.error = function(msg) {
-	logMessage(msg, this.topic, 'error');
+Logger.prototype.verbose = function(obj, msg) {
+	if (!this.checkLogLevel(constants.logging.verbose)) return;
+	logMessage(obj, msg, this.topic, 'verbose');
 }
 
-Logger.prototype.custom = function(msg, style) {
-	logMessage(msg, this.topic, style);
+Logger.prototype.custom = function(obj, msg, style) {
+	logMessage(obj, msg, this.topic, style);
 }
 
 Logger.prototype.writeBoxedLine = function(string, width, padchar, style) {
@@ -95,15 +98,25 @@ Logger.prototype.writeBox = function(string, width, style) {
 	this.writeBoxBottom(width, style);
 }
 
+Logger.prototype.checkLogLevel = function(level) {
+	return level <= this.logLevel;
+}
+
 
 
 module.exports = Logger;
 
 
 
-function logMessage(msg, topic, style='reset') {
-	//console.log(msg)
-	logMessageClear('[' + topic + '][' + style.toUpperCase() + '] ' + msg, style);
+function logMessage(obj, msg, topic, style) {
+	var message = obj;
+	if (helpers.isType(obj, 'object') || helpers.isType(obj, 'array')) {
+		message = '\n' + JSON.stringify(obj, null, 2)
+	}
+	if (msg != null && msg != '') {
+		message = msg + message;
+	}
+	logMessageClear('[' + topic + '][' + style.toUpperCase() + '] ' + message, style);
 }
 
 function logMessageClear(msg, style='reset') {
@@ -113,4 +126,19 @@ function logMessageClear(msg, style='reset') {
 
 function pad(value, length, padchar) {
     return (stripAnsi(value.toString()).length < length) ? pad(value+padchar, length, padchar):value;
+}
+
+function getLogLevel() {
+	var logLevelInt = parseInt(config.args.loglevel);
+	if (!isNaN(logLevelInt)) 
+		return logLevelInt;
+
+	switch (config.args.loglevel) {
+		case 'error': return constants.logging.error;
+		case 'warning': return constants.logging.warning;
+		case 'info': return constants.logging.info;
+		case 'debug': return constants.logging.debug;
+		case 'verbose': return constants.logging.verbose;
+		default: return constants.logging.all;
+	}
 }
