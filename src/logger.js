@@ -18,7 +18,7 @@ colors.setTheme({
 function Logger(topic) {
 	this.topic = topic;
 	this.defaultWidth = process.stdout.columns ? process.stdout.columns : 80;
-	this.logLevel = getLogLevel();
+	this.logLevel = getLogLevel(this.topic);
 }
 
 Logger.prototype.setTheme = function(obj) {
@@ -128,7 +128,12 @@ function pad(value, length, padchar) {
     return (stripAnsi(value.toString()).length < length) ? pad(value+padchar, length, padchar):value;
 }
 
-function getLogLevel() {
+function getLogLevel(topic) {
+	if (!config.args) {
+		logMessage('Defaulting to ALL for topic "' + topic + '"', null, topic, 'warning');
+		return constants.logging.all;
+	}
+
 	var logLevelInt = parseInt(config.args.loglevel);
 	if (!isNaN(logLevelInt)) 
 		return logLevelInt;

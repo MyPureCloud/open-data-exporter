@@ -2,44 +2,43 @@ var fs = require('fs');
 var _ = require('lodash');
 var moment = require('moment');
 
-var config = {};
+var constants = require('./constants');
 
-config.load = function() {
+function Config() {
 	// TODO: error handling
-	var configFileData = fs.readFileSync('config.json', 'UTF-8');
-	config.settings = JSON.parse(configFileData);
-	config.args = getNodeArgs();
-	
 	// TODO: replace with `config.settings = require('./config.json');` ???
+	var configFileData = fs.readFileSync('config.json', 'UTF-8');
+	this.settings = JSON.parse(configFileData);
+	this.args = getNodeArgs();
 }
 
-config.getJobData = function(data, jobName, configurationName) {
+Config.prototype.getJobData = function(data, jobName) {
 	var now = new moment();
+
 	var packagedData = {};
 
 	// Set data object
 	packagedData.data = data;
 
 	// Populate default vars
-	packagedData.args = config.args;
+	packagedData.args = this.args;
 	packagedData.vars = {};
-	packagedData.job = config.settings.jobs[jobName];
-	packagedData.configuration = config.settings.configurations[configurationName];
+	packagedData.job = this.settings.jobs[jobName];
 	packagedData.vars.date = now.clone();
 	packagedData.vars.interval = 'PT30M';
 
 	// Populate vars from config
 	// Load order (left to right): global > job > configuration > query > transform > template, export
-	setCustomData(packagedData.vars, config.settings.customData);
+	setCustomData(packagedData.vars, this.settings.customData);
 	setCustomData(packagedData.vars, packagedData.job.customData);
-	setCustomData(packagedData.vars, packagedData.configuration.customData);
-	setCustomData(packagedData.vars, config.settings.queries[packagedData.configuration.query].customData);
-	setCustomData(packagedData.vars, config.settings.transforms[packagedData.configuration.transform].customData);
-	setCustomData(packagedData.vars, config.settings.templates[packagedData.configuration.template].customData);
-	setCustomData(packagedData.vars, config.settings.exports[packagedData.configuration.export].customData);
+	setCustomData(packagedData.vars, packagedData.job.configuration.customData);
+	setCustomData(packagedData.vars, packagedData.job.configuration.query.customData);
+	setCustomData(packagedData.vars, packagedData.job.configuration.transform.customData);
+	setCustomData(packagedData.vars, packagedData.job.configuration.template.customData);
+	setCustomData(packagedData.vars, packagedData.job.configuration.export.customData);
 
 	// Parse interval to object for math operations (moment.js doesn't parse ISO-8601 durations passed to .add or .subtract)
-	var interval = moment.duration(packagedData.vars.interval)
+	var interval = moment.duration(packagedData.vars.interval);
 
 	// Populate derived variables
 	packagedData.vars.currentHour = now.clone().startOf('hour');
@@ -66,9 +65,7 @@ config.getJobData = function(data, jobName, configurationName) {
 	return packagedData;
 }
 
-config.load();
-
-module.exports = config;
+module.exports = new Config();
 
 
 
@@ -112,6 +109,5 @@ function getNodeArgs() {
 			args[arg.toLowerCase()] = true;
 		}
 	}
-
 	return args;
 }

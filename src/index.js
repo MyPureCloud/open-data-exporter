@@ -7,6 +7,7 @@ var Q = require('q');
 var Mustache = require('mustache');
 var moment = require('moment');
 var colors = require('colors/safe');
+var refParser = require('json-schema-ref-parser');
 
 var log = new Logger('main');
 
@@ -25,12 +26,18 @@ var pureCloudSession = purecloud.PureCloudSession({
 pureCloudSession.login().then(function() {
 	var api = new purecloud.AuthorizationApi(pureCloudSession);
 
-	api.getPermissions()
+	refParser.dereference(config.settings)
+		.then(function(schema) {
+			//log.debug(schema, 'Dereferenced schema: ');
+			log.info('Configuration successfully dereferenced')
+			return api.getPermissions();
+		})
 		.then(function(result){
+			// TODO: verify permissions?
 			log.info('Congratulations, ' + result.total + ' permissions are available');
 			
 			// Prepare queries
-			var jobData = config.getJobData({}, 'basic_job', 'basic_configuration');
+			var jobData = config.getJobData({}, 'basic_job');
 			expressionProcessor.evaluate(config.settings.queries, jobData.vars);
 
 			return doConversationsDetailsQuery(JSON.stringify(config.settings.queries['currentInterval'].query));
@@ -49,29 +56,6 @@ pureCloudSession.login().then(function() {
 
 			return {};
 		})
-		/*
-		.then(function(data) {
-			log.info('Got data!');
-			//log.debug(data, 'data')
-			var jobData = config.getJobData(data, 'basic_job', 'basic_configuration');
-
-			expressionProcessor.evaluate('$date->{{ $date }}', jobData.vars);
-			expressionProcessor.evaluate('interval->{{ $interval }}', jobData.vars);
-			expressionProcessor.evaluate('currentHour->{{ $currentHour }}', jobData.vars);
-			expressionProcessor.evaluate('previousHour->{{ $previousHour }}', jobData.vars);
-			expressionProcessor.evaluate('currentIntervalStart->{{ $currentIntervalStart }}', jobData.vars);
-			expressionProcessor.evaluate('previousIntervalStart->{{ $previousIntervalStart }}', jobData.vars);
-			expressionProcessor.evaluate('currentInterval->{{ $currentInterval }}', jobData.vars);
-			expressionProcessor.evaluate('previousInterval->{{ $previousInterval }}', jobData.vars);
-			expressionProcessor.evaluate('complex->{{ $currentIntervalStart + $interval + PT1H + PT2M - PT3S }}', jobData.vars);
-			
-			expressionProcessor.evaluate(config.settings.queries, jobData.vars);
-
-			log.debug(config.settings.queries.expression_query, 'expression query');
-
-			log.info('done');
-		})
-		*/
 		.catch(function(error) {
 			log.error(error.stack)
 		});
