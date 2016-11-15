@@ -43,6 +43,7 @@ Config.prototype.getJobData = function(data, jobName) {
 	// Populate derived variables
 	packagedData.vars.currentHour = now.clone().startOf('hour');
 	packagedData.vars.previousHour = now.clone().startOf('hour').subtract(1, 'hour');
+	packagedData.vars.previousMidnight = now.clone().startOf('day');
 
 	packagedData.vars.currentIntervalStart = packagedData.vars.currentHour.clone();
 	packagedData.vars.previousIntervalStart = packagedData.vars.currentHour.clone().subtract(interval);
@@ -61,6 +62,9 @@ Config.prototype.getJobData = function(data, jobName) {
 	packagedData.vars.currentInterval = packagedData.vars.currentIntervalStart.format() + '/' + packagedData.vars.currentIntervalStart.clone().add(interval).format();
 	packagedData.vars.previousInterval = packagedData.vars.previousIntervalStart.format() + '/' + packagedData.vars.previousIntervalStart.clone().add(interval).format();
 
+	// TODO: add more derived vars for computing larger intervals: 
+	// - cur/prev day (midnight)
+	// - last/previous<day of week> (lastMonday, previousMonday)
 
 	return packagedData;
 }
