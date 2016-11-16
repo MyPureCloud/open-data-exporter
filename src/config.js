@@ -12,7 +12,7 @@ function Config() {
 	this.args = getNodeArgs();
 }
 
-Config.prototype.getJobData = function(data, jobName) {
+Config.prototype.getJobData = function(data, job) {
 	var now = new moment();
 
 	var packagedData = {};
@@ -23,7 +23,7 @@ Config.prototype.getJobData = function(data, jobName) {
 	// Populate default vars
 	packagedData.args = this.args;
 	packagedData.vars = {};
-	packagedData.job = this.settings.jobs[jobName];
+	packagedData.job = job;
 	packagedData.vars.date = now.clone();
 	packagedData.vars.interval = 'PT30M';
 
