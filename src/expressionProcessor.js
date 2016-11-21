@@ -106,21 +106,19 @@ function dateMath(input, operator, value, vars) {
 	if (typeof(input) == 'string')
 		parsedInput = getMoment(replaceVariable(input, vars));
 	else
-		parsedInput = getMoment(input)
+		parsedInput = getMoment(input);
 
 	if (helpers.isType(value, 'String') && value.startsWith('$'))
 		parsedValue = getMoment(replaceVariable(value, vars));
 	else
-		parsedValue = getMoment(value)
+		parsedValue = getMoment(value);
 
 	switch(operator) {
 		case '+': {
 			return parsedInput.add(parsedValue);
-			break;
 		}
 		case '-': {
 			return parsedInput.subtract(parsedValue);
-			break;
 		}
 	}
 }
@@ -129,21 +127,21 @@ function getMoment(input) {
 	if (helpers.isType(input, 'String')) {
 		try {
 			var result = constants.regex.isoDateTime.exec(input);
-			if (result != null) {
+			if (result !== null) {
 				return moment(input);
 			}
 		} catch(e) {
-			log.info(('Not a moment: ' + input).error)
-			log.info(e.stack.error)
+			log.info(('Not a moment: ' + input).error);
+			log.info(e.stack.error);
 		}
 		try {
 			var result = constants.regex.isoDuration.exec(input);
-			if (result != null) {
+			if (result !== null) {
 				return moment.duration(input);
 			}
 		} catch(e) {
-			log.info(('Not a duration: ' + input).error)
-			log.info(e.stack.error)
+			log.info(('Not a duration: ' + input).error);
+			log.info(e.stack.error);
 		}
 	}
 	else if (helpers.isType(input, 'Date')) {

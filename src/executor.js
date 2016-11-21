@@ -28,11 +28,11 @@ Executor.prototype.initialize = function() {
 			deferred.resolve();
 		})
 		.catch(function(error) {
-			log.error(error.stack)
+			log.error(error.stack);
 		});
 
 	return deferred.promise;
-}
+};
 
 Executor.prototype.executeJob = function(job) {
 	var deferred = Q.defer();
@@ -46,7 +46,7 @@ Executor.prototype.executeJob = function(job) {
 			log.verbose(output, job.name + ':\n');
 
 			return {};
-		})
+		});
 
 	return deferred.promise;
 };
@@ -66,7 +66,7 @@ function getQueryData(query) {
     		return api.postConversationsAggregatesQuery(JSON.stringify(query.query));
     	}
     	default: {
-    		var err = 'Unknown query type: ' + query.type
+    		var err = 'Unknown query type: ' + query.type;
     		log.error(err);
     		throw err;
     	}

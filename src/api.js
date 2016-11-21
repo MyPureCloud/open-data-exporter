@@ -22,7 +22,7 @@ function Api() {
 	this.authorizationApi = new purecloud.AuthorizationApi(this.pureCloudSession);
 
 	if (config.args.debugapi === true) {
-		log.debug('debugging api')
+		log.debug('debugging api');
 		this.pureCloudSession.debugLog = console.log;
 	}
 }
@@ -36,10 +36,10 @@ Api.prototype.login = function() {
 		})
 		.catch(function(error) {
 			return deferred.reject(error);
-		})
+		});
 
 	return deferred.promise;
-}
+};
 
 Api.prototype.postConversationsDetailsQuery = function(query) {
 	var deferred = Q.defer();
@@ -54,7 +54,7 @@ Api.prototype.postConversationsDetailsQuery = function(query) {
 		});
 
 	return deferred.promise;
-}
+};
 
 Api.prototype.postConversationsAggregatesQuery = function(query) {
 	var deferred = Q.defer();
@@ -69,7 +69,7 @@ Api.prototype.postConversationsAggregatesQuery = function(query) {
 		});
 
 	return deferred.promise;
-}
+};
 
 Api.prototype.getPermissions = function() {
 	var deferred = Q.defer();
@@ -84,6 +84,6 @@ Api.prototype.getPermissions = function() {
 		});
 
 	return deferred.promise;
-}
+};
 
 module.exports = new Api();

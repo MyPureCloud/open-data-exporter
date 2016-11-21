@@ -20,5 +20,5 @@ log.writeBox('Open Data Explorer v' + packageData.version, null, 'cyan');
 executor.initialize()
 	.then(() => executor.executeJob(config.settings.jobs['verint_agent_detail_job']))
 	.catch(function(error) {
-		log.error(error.stack)
+		log.error(error.stack);
 	});

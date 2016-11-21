@@ -67,14 +67,14 @@ Config.prototype.getJobData = function(data, job) {
 	// - last/previous<day of week> (lastMonday, previousMonday)
 
 	return packagedData;
-}
+};
 
 module.exports = new Config();
 
 
 
 function setCustomData(obj, customData) {
-	if (customData == null) return;
+	if (customData === null) return;
 
 	_.forOwn(customData, function(value, key) {
 		obj[key] = value;
@@ -82,12 +82,12 @@ function setCustomData(obj, customData) {
 }
 
 function getNodeArgs() {
-	var args = {}
+	var args = {};
 
 	// Parse into pretty object
 	for (i = 2; i < process.argv.length; i++) {
 		var arg = process.argv[i];
-		var index = arg.indexOf('=')
+		var index = arg.indexOf('=');
 
 		if (index > 0) {
 			// format was key=value

@@ -13,7 +13,7 @@ colors.setTheme({
 	info: [ 'reset' ],
 	debug: [ 'cyan' ],
 	verbose: [ 'dim' ]
-})
+});
 
 function Logger(topic) {
 	this.topic = topic;
@@ -23,36 +23,36 @@ function Logger(topic) {
 
 Logger.prototype.setTheme = function(obj) {
 	colors.setTheme(obj);
-}
+};
 
 Logger.prototype.error = function(obj, msg) {
 	if (!this.checkLogLevel(constants.logging.error)) return;
 	logMessage(obj, msg, this.topic, 'error');
-}
+};
 
 Logger.prototype.warning = function(obj, msg) {
 	if (!this.checkLogLevel(constants.logging.warning)) return;
 	logMessage(obj, msg, this.topic, 'warning');
-}
+};
 
 Logger.prototype.info = function(obj, msg) {
 	if (!this.checkLogLevel(constants.logging.info)) return;
 	logMessage(obj, msg, this.topic, 'info');
-}
+};
 
 Logger.prototype.debug = function(obj, msg) {
 	if (!this.checkLogLevel(constants.logging.debug)) return;
 	logMessage(obj, msg, this.topic, 'debug');
-}
+};
 
 Logger.prototype.verbose = function(obj, msg) {
 	if (!this.checkLogLevel(constants.logging.verbose)) return;
 	logMessage(obj, msg, this.topic, 'verbose');
-}
+};
 
 Logger.prototype.custom = function(obj, msg, style) {
 	logMessage(obj, msg, this.topic, style);
-}
+};
 
 Logger.prototype.writeBoxedLine = function(string, width, padchar, style) {
 	if (!width) width = this.defaultWidth;
@@ -73,22 +73,22 @@ Logger.prototype.writeBoxedLine = function(string, width, padchar, style) {
 	_.forEach(rows, function(row, index) {
 		logMessageClear('║ ' + pad(row.trimRight(), cWidth, padchar) + ' ║', style);
 	});
-}
+};
 
 Logger.prototype.writeBoxTop = function(width, style) {
 	if (!width) width = this.defaultWidth;
 	logMessageClear('╔' + pad('', width - 2, '═') + '╗', style);
-}
+};
 
 Logger.prototype.writeBoxSeparator = function(width, style) {
 	if (!width) width = this.defaultWidth;
 	logMessageClear('╟' + pad('', width - 2, '─') + '╢', style);
-}
+};
 
 Logger.prototype.writeBoxBottom = function(width, style) {
 	if (!width) width = this.defaultWidth;
 	logMessageClear('╚' + pad('', width - 2, '═') + '╝', style);
-}
+};
 
 Logger.prototype.writeBox = function(string, width, style) {
 	if (!width)
@@ -96,11 +96,11 @@ Logger.prototype.writeBox = function(string, width, style) {
 	this.writeBoxTop(width, style);
 	this.writeBoxedLine(string, width, null, style);
 	this.writeBoxBottom(width, style);
-}
+};
 
 Logger.prototype.checkLogLevel = function(level) {
 	return level <= this.logLevel;
-}
+};
 
 
 
@@ -111,9 +111,9 @@ module.exports = Logger;
 function logMessage(obj, msg, topic, style) {
 	var message = obj;
 	if (helpers.isType(obj, 'object') || helpers.isType(obj, 'array')) {
-		message = '\n' + JSON.stringify(obj, null, 2)
+		message = '\n' + JSON.stringify(obj, null, 2);
 	}
-	if (msg != null && msg != '') {
+	if (msg !== null && msg !== '') {
 		message = msg + message;
 	}
 	logMessageClear('[' + topic + '][' + style.toUpperCase() + '] ' + message, style);
