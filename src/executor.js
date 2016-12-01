@@ -29,6 +29,7 @@ Executor.prototype.initialize = function() {
 		})
 		.catch(function(error) {
 			log.error(error.stack);
+			deferred.reject(error);
 		});
 
 	return deferred.promise;
@@ -37,16 +38,23 @@ Executor.prototype.initialize = function() {
 Executor.prototype.executeJob = function(job) {
 	var deferred = Q.defer();
 
-	getQueryData(job.configuration.query)
-		.then(function(data) {
-			//log.debug(data)
-			var jobData = config.getJobData(data, job);
-			//fs.writeFileSync('data.json',JSON.stringify(jobData));
-			var output = helpers.executeTemplate(job.configuration.template.template, jobData);
-			log.verbose(output, job.name + ':\n');
+	try {
+		getQueryData(job.configuration.query)
+			.then(function(data) {
+				var jobData = config.getJobData(data, job);
+				var output = helpers.executeTemplate(job.configuration.template.template, jobData);
+				log.verbose(output, job.name + ':\n');
 
-			return {};
-		});
+				deferred.resolve();
+			})
+			.catch(function(error) {
+				log.error(error.stack);
+				deferred.reject(error);
+			});
+	} catch(error) {
+		log.error(error);
+		deferred.reject(error);
+	}
 
 	return deferred.promise;
 };

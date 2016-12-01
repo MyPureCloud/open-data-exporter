@@ -15,10 +15,11 @@ var log = new Logger('main');
 
 
 
-log.writeBox('Open Data Explorer v' + packageData.version, null, 'cyan');
+log.writeBox('Open Data Exporter v' + packageData.version, null, 'cyan');
 
 executor.initialize()
 	.then(() => executor.executeJob(config.settings.jobs['verint_agent_detail_job']))
+	.then(() => executor.executeJob(config.settings.jobs['basic_job']))
 	.catch(function(error) {
 		log.error(error.stack);
 	});

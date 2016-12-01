@@ -113,14 +113,13 @@ function logMessage(obj, msg, topic, style) {
 	if (helpers.isType(obj, 'object') || helpers.isType(obj, 'array')) {
 		message = '\n' + JSON.stringify(obj, null, 2);
 	}
-	if (msg !== null && msg !== '') {
+	if (msg !== undefined && msg !== null && msg !== '') {
 		message = msg + message;
 	}
 	logMessageClear('[' + topic + '][' + style.toUpperCase() + '] ' + message, style);
 }
 
 function logMessageClear(msg, style='reset') {
-	//console.log('style->'+style)
 	console.log(colors[style](msg));
 }
 

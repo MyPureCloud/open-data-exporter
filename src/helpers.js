@@ -1,31 +1,41 @@
-var Handlebars = require('handlebars');
+var dot = require('dot');
 var fs = require('fs');
 var moment = require('moment');
 
 // Investigate doT.js for templating: http://olado.github.io/doT/index.html
 
+var defs = {};
+defs.loadfile = function(loadPath) {
+	return fs.readFileSync(loadPath);
+};
+
+defs.jsonStringify = function(data) {
+	console.log(data);
+	return JSON.stringify(data,null,2);
+	//return "string data";
+};
+
+defs.formatDate = function(d, format){
+	if (!format) format='YYYY-MM-DDTHH:mm:ss.SSSZZ';
+	var m = new moment(d,'x');
+	return m.clone().format(format);
+};
+
+defs.getMetric = function(data, metricName) {
+	var m = null;
+	data[0].metrics.forEach(function(metric) {
+		if (m !== null) return;
+		if (metric.metric.toLowerCase() == metricName.toLowerCase()) {
+			m = metric;
+		}
+	});
+
+	return m;
+};
+
 function Helpers() {
-	// Usage: {{#metric data.0.metrics name=\"tAnswered\"}}tAnswered:{{stats.max}}{{/metric}}
-	Handlebars.registerHelper('metric', function(context, options) {
-		var metricName = options.hash.name;
-		var m = null;
-		context.forEach(function(metric) {
-			if (m !== null) return;
-			if (metric.metric.toLowerCase() == metricName.toLowerCase()) {
-				// options.fn(...) applies the passed in data object to the template
-				m = options.fn(metric);
-			}
-		});
-
-		return m;
-	});
-
-	// Usage: {{#formatDate vars.currentIntervalStart format=\"YYYY-MM-DDTHH:mm:ss.SSSZZ\"}}{{.}}{{/formatDate}}
-	Handlebars.registerHelper('formatDate', function(context, options) {
-		var formatString = options.hash.format;
-		var m = new moment(context);
-		return options.fn(m.format(formatString));
-	});
+	// Don't strip whitespace
+	dot.templateSettings.strip = false;
 }
 
 Helpers.prototype.isType = function(obj, type) { 
@@ -39,8 +49,14 @@ Helpers.prototype.isType = function(obj, type) {
 };
 
 Helpers.prototype.executeTemplate = function(templateString, data) {
-	var template = Handlebars.compile(templateString);
-	return template(data);
+	// Plug in data
+	defs.data = data;
+
+	// Generate template with def data
+	var template = dot.template(templateString, null, defs);
+
+	// Execute template with def data
+	return template(defs);
 };
 
 
