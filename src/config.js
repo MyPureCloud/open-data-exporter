@@ -1,73 +1,24 @@
 var fs = require('fs');
 var _ = require('lodash');
 var moment = require('moment');
+var colors = require('colors/safe');
 
 var constants = require('./constants');
 
+
+
 function Config() {
-	// TODO: error handling
-	// TODO: replace with `config.settings = require('./config.json');` ???
-	var configFileData = fs.readFileSync('config.json', 'UTF-8');
-	this.settings = JSON.parse(configFileData);
+	// Parse command line args
 	this.args = getNodeArgs();
+
+	// Load config file
+	if (!this.args.config)
+		this.args.config = './config.json';
+	console.log(colors.dim('loading config from ' + this.args.config));
+	this.settings = require(this.args.config);
 }
 
-Config.prototype.getJobData = function(data, job) {
-	var now = new moment();
 
-	var packagedData = {};
-
-	// Set data object
-	packagedData.data = data;
-
-	// Populate default vars
-	packagedData.args = this.args;
-	packagedData.vars = {};
-	packagedData.job = job;
-	packagedData.vars.date = now.clone();
-	packagedData.vars.interval = 'PT30M';
-
-	// Populate vars from config
-	// Load order (left to right): global > job > configuration > query > transform > template, export
-	setCustomData(packagedData.vars, this.settings.customData);
-	setCustomData(packagedData.vars, packagedData.job.customData);
-	setCustomData(packagedData.vars, packagedData.job.configuration.customData);
-	setCustomData(packagedData.vars, packagedData.job.configuration.query.customData);
-	setCustomData(packagedData.vars, packagedData.job.configuration.transform.customData);
-	setCustomData(packagedData.vars, packagedData.job.configuration.template.customData);
-	setCustomData(packagedData.vars, packagedData.job.configuration.export.customData);
-
-	// Parse interval to object for math operations (moment.js doesn't parse ISO-8601 durations passed to .add or .subtract)
-	var interval = moment.duration(packagedData.vars.interval);
-
-	// Populate derived variables
-	packagedData.vars.currentHour = now.clone().startOf('hour');
-	packagedData.vars.previousHour = now.clone().startOf('hour').subtract(1, 'hour');
-	packagedData.vars.previousMidnight = now.clone().startOf('day');
-
-	packagedData.vars.currentIntervalStart = packagedData.vars.currentHour.clone();
-	packagedData.vars.previousIntervalStart = packagedData.vars.currentHour.clone().subtract(interval);
-	for (i=1;i<60;i++) {
-		var nextInterval = packagedData.vars.currentIntervalStart.clone().add(interval);
-		if (nextInterval < now) {
-			// Interval does not exceed current time, set it
-			packagedData.vars.currentIntervalStart = nextInterval;
-			packagedData.vars.previousIntervalStart = nextInterval.clone().subtract(interval);
-		}
-		else {
-			break;
-		}
-	}
-
-	packagedData.vars.currentInterval = packagedData.vars.currentIntervalStart.format() + '/' + packagedData.vars.currentIntervalStart.clone().add(interval).format();
-	packagedData.vars.previousInterval = packagedData.vars.previousIntervalStart.format() + '/' + packagedData.vars.previousIntervalStart.clone().add(interval).format();
-
-	// TODO: add more derived vars for computing larger intervals: 
-	// - cur/prev day (midnight)
-	// - last/previous<day of week> (lastMonday, previousMonday)
-
-	return packagedData;
-};
 
 module.exports = new Config();
 

@@ -6,6 +6,8 @@ var helpers = require('./helpers');
 var config = require('./config');
 var constants = require('./constants');
 
+
+
 // Set default themes
 colors.setTheme({
 	error: [ 'bgBlack', 'red' ],
@@ -14,6 +16,8 @@ colors.setTheme({
 	debug: [ 'cyan' ],
 	verbose: [ 'dim' ]
 });
+
+
 
 function Logger(topic) {
 	this.topic = topic;
