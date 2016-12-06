@@ -27,12 +27,14 @@ Executor.prototype.initialize = function() {
 	var deferred = Q.defer();
 
 	api.login()
+		// Execute templates in queries to prepare them for API requests
 		.then(() => processQueries(config.settings, this.defs))
 		.then(function() {
 			log.verbose('Queries processed successfully');
 			if (config.args.showconfig === true) 
 				log.debug(JSON.stringify(config.settings,null,2));
 		})
+		// Dereference JSON references. This makes the config file easy to use
 		.then(() => refParser.dereference(config.settings))
 		.then(function(schema) {
 			log.verbose('Configuration successfully dereferenced');
@@ -54,15 +56,28 @@ Executor.prototype.executeJob = function(job) {
 
 	try {
 		log.verbose('Executing job ' + job.name);
-		var executor = this;
+		var _this = this;
+
+		// Execute API analytics query
 		getQueryData(job.configuration.query)
 			.then(function(data) {
-				//TODO: flesh out this process to execute templates for all strings in all parts of the config before executing the template
+				// Compile all the custom attributes in the job to prepare for templating
+				var jobData = _this.defs.setJobData(data, job);
 
-				var jobData = executor.defs.setJobData(data, job);
+				// Execute data transforms
+				_.forEach(job.configuration.transform.expressions, function(value, key) {
+					var x = executeTemplate(value, jobData, _this.defs);
+				});
+
+				// Compile and run the template 
 				//TODO: determine if a new defs object should be used or if reuse is fine. Concern: functions added during template compilation may be added to defs
-				var output = executeTemplate(job.configuration.template.template, jobData, executor.defs);
-				log.verbose(output, job.name + ':\n');
+				var output = executeTemplate(job.configuration.template.template, jobData, _this.defs);
+
+				if (config.args.showoutput === true) {
+					log.info(output, job.name + ':\n');
+				}
+
+				//TODO: export processing
 
 				deferred.resolve();
 			})
@@ -94,9 +109,7 @@ function executeTemplate(templateString, data, defs) {
 	// Plug in data
 	if (data)
 		defs.data = data;
-
-	// Prevent undefined errors
-	if (!defs.data)
+	else
 		defs.data = {};
 
 	// Compile template
@@ -107,6 +120,7 @@ function executeTemplate(templateString, data, defs) {
 }
 
 function getQueryData(query) {
+	//TODO: support a config parameter on a query to get X pages of data for the query
     switch(query.type.toLowerCase()) {
     	case 'conversationdetail': {
     		return api.postConversationsDetailsQuery(JSON.stringify(query.query));

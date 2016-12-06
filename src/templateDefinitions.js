@@ -17,19 +17,31 @@ function TemplateDefinitions() {
 	this.initializeVars();
 }
 
+
+
+/**
+ * Built-in functions for templates
+ */
+
 TemplateDefinitions.prototype.loadfile = function(loadPath) {
 	return fs.readFileSync(loadPath);
 };
 
 TemplateDefinitions.prototype.jsonStringify = function(data) {
-	return JSON.stringify(data,null,2);
+	return JSON.stringify(data, null, 2);
 };
 
-TemplateDefinitions.prototype.formatDate = function(d, format){
+TemplateDefinitions.prototype.formatDate = function(d, format) {
+	// Default to ISO-8601 format
 	if (!format) 
 		format = constants.strings.isoDateFormat;
+
+	// Parse the date to a moment object
+	// The date/moment object will be passed in as a string in the unix millisecond format (e.g. 1410715640579)
 	var m = new moment(d,'x');
-	return m.clone().format(format);
+
+	// Return the formatted object
+	return m.format(format);
 };
 
 TemplateDefinitions.prototype.addDuration = function(date, duration) {
@@ -48,10 +60,32 @@ TemplateDefinitions.prototype.getMetric = function(data, metricName) {
 	return m;
 };
 
+TemplateDefinitions.prototype.countConversations = function(data) {
+	return data.conversations.length;
+};
+
+TemplateDefinitions.prototype.countSegments = function(data) {
+	_.forEach(data.conversations, function(conversation) {
+		_.forEach(conversation.participants, function(participant, key) {
+			participant.sessionCount = participant.sessions.length;
+			_.forEach(participant.sessions, function(session, key) {
+				session.segmentCount = session.segments.length;
+			});
+		});
+	});
+};
+
+
+
+/**
+ * Public functions for use in node.js code
+ */
+
 TemplateDefinitions.prototype.initializeVars = function() {
 	this.vars = {};
 	this.vars.args = config.args;
 	this.vars.date = this.now.clone();
+	// Initialize to 30 minute interval as default
 	this.vars.interval = 'PT30M';
 
 	generateDerivedVars(this);
