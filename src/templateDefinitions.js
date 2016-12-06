@@ -12,6 +12,14 @@ var log = new Logger('TemplateDefinitions');
 
 
 
+/**
+ * A module to provide template definitions
+ * @module  TemplateDefinitions
+ * @property {Moment} now  - A date time object (Moment) indicating the timestamp when the instance was created
+ * @property {Object} vars - An object containing variables for use in templates
+ * @property {Object} data - The data resulting from an API query
+ * @property {Object} job  - The job config object
+ */
 function TemplateDefinitions() {
 	this.now = new moment();
 	this.initializeVars();
@@ -23,14 +31,42 @@ function TemplateDefinitions() {
  * Built-in functions for templates
  */
 
+/**
+ * Loads a file into the template
+ * @module  TemplateDefinitions
+ * @instance
+ * @function loadfile
+ * @param {string} loadPath - The path to the file
+ *
+ * @return {string} The contents of the file
+ */
 TemplateDefinitions.prototype.loadfile = function(loadPath) {
 	return fs.readFileSync(loadPath);
 };
 
+/**
+ * Turns a JSON object into a string
+ * @module  TemplateDefinitions
+ * @instance
+ * @function jsonStringify
+ * @param {Object} data - The JSON object
+ *
+ * @return {string} The stringified JSON
+ */
 TemplateDefinitions.prototype.jsonStringify = function(data) {
 	return JSON.stringify(data, null, 2);
 };
 
+/**
+ * Formats a date according to the given format. Defaults to the ISO-8601 standard format
+ * @module  TemplateDefinitions
+ * @instance
+ * @function formatDate
+ * @param {long}   d      - The unix timestamp (milliseconds)
+ * @param {string} format - The format to apply. See http://momentjs.com/docs/#/displaying/format/
+ *
+ * @return {string} The formatted string
+ */
 TemplateDefinitions.prototype.formatDate = function(d, format) {
 	// Default to ISO-8601 format
 	if (!format) 
@@ -44,10 +80,28 @@ TemplateDefinitions.prototype.formatDate = function(d, format) {
 	return m.format(format);
 };
 
+/**
+ * Adds a duration to a date
+ * @module  TemplateDefinitions
+ * @instance
+ * @function addDuration
+ * @param {Moment} date     - The Moment object to use as a source (immutable)
+ * @param {string} duration - 8601 formatted duration to add to the date
+ */
 TemplateDefinitions.prototype.addDuration = function(date, duration) {
 	return date.clone().add(moment.duration(duration));
 };
 
+/**
+ * Gets a metric object with the give metric name
+ * @module  TemplateDefinitions
+ * @instance
+ * @function getMetric
+ * @param {Object} data       - The API result data object containing the metrics
+ * @param {string} metricName - The name of the metric to retrieve
+ *
+ * @return {Object} The metric object
+ */
 TemplateDefinitions.prototype.getMetric = function(data, metricName) {
 	var m = null;
 	data[0].metrics.forEach(function(metric) {
@@ -60,10 +114,26 @@ TemplateDefinitions.prototype.getMetric = function(data, metricName) {
 	return m;
 };
 
+/**
+ * Counts the conversations from a conversation detail query
+ * @module  TemplateDefinitions
+ * @instance
+ * @function countConversations
+ * @param {Object} data - The data from a conversation detail query
+ *
+ * @return {int} The count of the conversations in the dataset
+ */
 TemplateDefinitions.prototype.countConversations = function(data) {
 	return data.conversations.length;
 };
 
+/**
+ * Counts the sessions and segments for each participant and adds the "sessionCount" property to the participant and the "segmentCount" property to each segment
+ * @module  TemplateDefinitions
+ * @instance
+ * @function countSegments
+ * @param {Object} data - The data from a conversation detail query
+ */
 TemplateDefinitions.prototype.countSegments = function(data) {
 	_.forEach(data.conversations, function(conversation) {
 		_.forEach(conversation.participants, function(participant, key) {
