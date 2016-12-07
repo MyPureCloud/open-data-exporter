@@ -175,7 +175,6 @@ TemplateDefinitions.prototype.setJobData = function(data, job, configuration) {
 	this.configuration = configuration;
 
 	// Populate vars from config
-	// Load order (left to right): global > job > configuration > query > transform > template, export
 	setCustomData(this.vars, config.settings.customData);
 	setCustomData(this.vars, job.customData);
 	setCustomDataFromObjects(this.vars, job.configurations);

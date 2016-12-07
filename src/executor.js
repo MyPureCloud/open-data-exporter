@@ -69,32 +69,47 @@ Executor.prototype.initialize = function() {
 	return deferred.promise;
 };
 
-Executor.prototype.executeJobs = function(jobs, deferred) {
+/**
+ * Recursively executes the specified jobs and resolves when all are completed
+ * @module  Executor
+ * @instance
+ * @function executeJobs
+ * @param {array}   jobNames - An array of job names to be executed
+ * @param {promise} deferred - A reference to the promise to resolve when done
+ *
+ * @return {promise}
+ */
+Executor.prototype.executeJobs = function(jobNames, deferred) {
 	if (!deferred)
 		deferred = Q.defer();
 
-	if (!jobs || jobs.length === 0) {
+	if (!jobNames || jobNames.length === 0) {
 		log.verbose('All jobs completed!');
 		deferred.resolve();
 		return deferred.promise;
 	}
 
-	var jobName = jobs.shift();
+	var jobName = jobNames.shift();
 	var job = config.settings.jobs[jobName];
 	var _this = this;
-	if (job) {
-		this.executeJob(job)
-			.then(function() {
-				return _this.executeJobs(jobs, deferred);
-			})
-			.catch(function(error) {
-				log.error(error.stack);
-				deferred.reject(error);
-			});
-	} else {
+
+	// Job found?
+	if (!job) {
 		log.warning('Job does not exist: ' + jobName);
-		_this.executeJobs(jobs, deferred);
+		this.executeJobs(jobNames, deferred);
+		return deferred.promise;
 	}
+
+	// Execute job
+	this.executeJob(job)
+		.then(function() {
+			return _this.executeJobs(jobNames, deferred);
+		})
+		.catch(function(error) {
+			log.error(error.stack);
+			deferred.reject(error);
+		});
+
 	return deferred.promise;
 };
 
@@ -104,6 +119,7 @@ Executor.prototype.executeJobs = function(jobs, deferred) {
  * @instance
  * @function executeJob
  * @param {Object} job - The job
+ *
  * @return {promise}
  */
 Executor.prototype.executeJob = function(job) {
@@ -112,6 +128,7 @@ Executor.prototype.executeJob = function(job) {
 	log.debug('Executing job: ' + job.name);
 	var jobLog = new Logger('job:' + job.name);
 
+	// Execute each configuration in the job
 	executeConfigurations(job, _.keys(job.configurations), this, jobLog)
 		.then(function() {
 			log.debug('Job completed: ' + job.name);
@@ -131,26 +148,43 @@ module.exports = new Executor();
 
 
 
+/**
+ * Recursively executes the specified configurations and resolves when all are completed
+ * @module  Executor
+ * @function executeConfigurations
+ * @private
+ * @param {Object}   job                - The job object
+ * @param {array}    configurationNames - An array of configuration object names to process
+ * @param {Executor} _this              - A reference to the Executor instance
+ * @param {Logger}   jobLog             - A reference to the Logger instance for the job
+ * @param {promise}  deferred           - A reference to the promise to resolve when done
+ *
+ * @return {promise}
+ */
 function executeConfigurations(job, configurationNames, _this, jobLog, deferred) {
 	if (!deferred)
 		deferred = Q.defer();
 
+	// More to process?
 	if (!configurationNames || configurationNames.length === 0) {
 		log.verbose('All configurations completed!');
 		deferred.resolve();
 		return deferred.promise;
 	}
 
+	// Get configuration object
 	var configurationName = configurationNames.shift();
 	var configuration = job.configurations[configurationName];
 
+	// Configuration found?
 	if (!configuration) {
+		jobLog.warning('Configuration does not exist: ' + configurationName);
 		executeConfigurations(job, configurationNames, _this, jobLog, deferred);
 		return deferred.promise;
 	}
 
+	// Process configuration
 	jobLog.debug('Processing configuration: ' + configuration.name);
-
 	getQueryData(configuration, _this)
 		.then(function(data) {
 			// Compile all the custom attributes in the job to prepare for templating
@@ -204,6 +238,11 @@ function executeConfigurations(job, configurationNames, _this, jobLog, deferred)
 	return deferred.promise;
 }
 
+/**
+ * Writes the content to a file
+ * @param {string} exportPath - The path, including filename, where the data should be written
+ * @param {string} content    - The content to write
+ */
 function exportToFile(exportPath, content) {
 	mkdirp.sync(path.dirname(exportPath));
 	log.verbose('Writing output to ' + exportPath);
