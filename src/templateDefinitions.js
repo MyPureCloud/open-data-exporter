@@ -178,10 +178,10 @@ TemplateDefinitions.prototype.setJobData = function(data, job) {
 	setCustomData(this.vars, config.settings.customData);
 	setCustomData(this.vars, job.customData);
 	setCustomData(this.vars, job.configuration.customData);
-	setCustomData(this.vars, job.configuration.query.customData);
-	setCustomData(this.vars, job.configuration.transform.customData);
-	setCustomData(this.vars, job.configuration.template.customData);
-	setCustomData(this.vars, job.configuration.export.customData);
+	setCustomDataFromObjects(this.vars, job.configuration.queries);
+	setCustomDataFromObjects(this.vars, job.configuration.transforms);
+	setCustomDataFromObjects(this.vars, job.configuration.templates);
+	setCustomDataFromObjects(this.vars, job.configuration.exports);
 
 	// Regenerate derived vars
 	generateDerivedVars(this);
@@ -226,11 +226,15 @@ function generateDerivedVars(defs) {
 	// - last/previous<day of week> (lastMonday, previousMonday)
 }
 
-function setCustomData(obj, customData) {
+function setCustomDataFromObjects(vars, obj) {
+	_.forOwn(obj, (value) => setCustomData(vars, value.customData));
+}
+
+function setCustomData(vars, customData) {
 	if (customData === null) return;
 
 	_.forOwn(customData, function(value, key) {
-		obj[key] = value;
+		vars[key] = value;
 	});
 }
 

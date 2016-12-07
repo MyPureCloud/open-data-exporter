@@ -3,6 +3,7 @@ var moment = require('moment');
 var colors = require('colors/safe');
 var refParser = require('json-schema-ref-parser');
 var fs = require('fs');
+var _ = require('lodash');
 
 var config = require('./config');
 var Logger = require('./logger');
@@ -18,8 +19,17 @@ var log = new Logger('main');
 log.writeBox('Open Data Exporter v' + packageData.version, null, 'cyan');
 
 executor.initialize()
-	.then(() => executor.executeJob(config.settings.jobs['verint_agent_detail_job']))
-	.then(() => executor.executeJob(config.settings.jobs['basic_job']))
+	.then(function() {
+		if (!config.args.jobs) return;
+
+		// Manually execute jobs
+		/*
+		_.forEach(config.args.jobs.split(','), function(job) {
+			executor.executeJob(config.settings.jobs[job]);
+		});
+		*/
+		return executor.executeJobs(config.args.jobs.split(','));
+	})
 	.catch(function(error) {
 		log.error(error.stack);
 	});

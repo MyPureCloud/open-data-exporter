@@ -54,6 +54,8 @@ Executor.prototype.initialize = function() {
 		.then(() => refParser.dereference(config.settings))
 		.then(function(schema) {
 			log.verbose('Configuration successfully dereferenced');
+			if (config.args.showconfig === true) 
+				log.debug(JSON.stringify(config.settings,null,2));
 		})
 		.then(function() {
 			log.verbose('Executor initialized');
@@ -64,6 +66,36 @@ Executor.prototype.initialize = function() {
 			deferred.reject(error);
 		});
 
+	return deferred.promise;
+};
+
+Executor.prototype.executeJobs = function(jobs, deferred) {
+	//log.debug(jobs);
+	if (!deferred)
+		deferred = Q.defer();
+
+	if (!jobs || jobs.length === 0) {
+		log.verbose('All jobs completed!');
+		deferred.resolve();
+		return;
+	}
+
+	var jobName = jobs.shift();
+	var job = config.settings.jobs[jobName];
+	var _this = this;
+	if (job) {
+		this.executeJob(job)
+			.then(function() {
+				return _this.executeJobs(jobs, deferred);
+			})
+			.catch(function(error) {
+				log.error(error.stack);
+				deferred.reject(error);
+			});
+	} else {
+		log.warning('Job does not exist: ' + jobName);
+		_this.executeJobs(jobs, deferred);
+	}
 	return deferred.promise;
 };
 
@@ -80,44 +112,58 @@ Executor.prototype.executeJob = function(job) {
 
 	try {
 		log.debug('Executing job: ' + job.name);
+		var jobLog = new Logger('job:' + job.name);
 		var _this = this;
 
 		// Execute API analytics query
-		getQueryData(job.configuration.query)
+		getQueryData(job, this)
 			.then(function(data) {
 				// Compile all the custom attributes in the job to prepare for templating
-				log.verbose('Setting job data...');
+				jobLog.verbose('Setting job data...');
 				_this.defs.setJobData(data, job);
 
 				// Execute data transforms
-				_.forEach(job.configuration.transform.expressions, function(value, key) {
-					log.verbose('Executing transform: ' + value);
-					executeTemplate(value, null, _this.defs);
+				_.forOwn(job.configuration.transforms, function(transform, key) {
+					_.forEach(transform.expressions, function(expression, key) {
+						jobLog.verbose('Executing transform: ' + expression);
+						executeTemplate(expression, null, _this.defs);
+					});
 				});
 
 				// Compile and run the template 
 				//TODO: determine if a new defs object should be used or if reuse is fine. Concern: functions added during template compilation may be added to defs
-				log.verbose('Executing template....');
-				var output = executeTemplate(job.configuration.template.template, null, _this.defs);
+				jobLog.verbose('Executing templates...');
+				_.forOwn(job.configuration.templates, function(template, key) {
+					jobLog.verbose('Executing template: ' + template.name);
+					var output = executeTemplate(template.template, null, _this.defs);
 
-				if (config.args.showoutput === true) {
-					log.info(output, job.name + ':\n');
-				}
+					if (config.args.showoutput === true) {
+						jobLog.info(output, template.name + ':');
+					}
 
-				// Export processing
-				var exportFileName = executeTemplate(job.configuration.template.fileName, null, _this.defs);
-				var exportPath = path.join(job.configuration.export.destination, exportFileName);
-				log.verbose('Creating path ' + path.dirname(exportPath));
-				mkdirp.sync(path.dirname(exportPath));
-				log.verbose('Writing file ' + path.basename(exportPath));
-				fs.writeFileSync(exportPath, output);
+					// Export processing
+					var exportFileName = executeTemplate(template.fileName, null, _this.defs);
+					jobLog.verbose('Executing exports...');
+					_.forOwn(job.configuration.exports, function(ex, key) {
+						switch(ex.type.toLowerCase()) {
+							case 'file': {
+								exportToFile(path.join(ex.destination, exportFileName), output);
+								break;
+							}
+							default: {
+								jobLog.error('Unknown export type: ' + ex.type);
+								break;
+							}
+						}
+					});
+				});
 
 				// Done
-				log.debug('Job completed: ' + job.name);
+				jobLog.debug('Job completed: ' + job.name);
 				deferred.resolve();
 			})
 			.catch(function(error) {
-				log.error(error.stack);
+				jobLog.error(error.stack);
 				deferred.reject(error);
 			});
 	} catch(error) {
@@ -132,6 +178,13 @@ Executor.prototype.executeJob = function(job) {
 
 module.exports = new Executor();
 
+
+
+function exportToFile(exportPath, content) {
+	mkdirp.sync(path.dirname(exportPath));
+	log.verbose('Writing output to ' + exportPath);
+	fs.writeFileSync(exportPath, content);
+}
 
 /**
  * Executes a template with the given data and definitions
@@ -174,21 +227,43 @@ function executeTemplate(templateString, data, defs) {
  *
  * @return {promise}
  */
-function getQueryData(query) {
+function getQueryData(job, _this) {
+	var deferred = Q.defer();
+
 	//TODO: support a config parameter on a query to get X pages of data for the query
-    switch(query.type.toLowerCase()) {
-    	case 'conversationdetail': {
-    		return api.postConversationsDetailsQuery(JSON.stringify(query.query));
-    	}
-    	case 'conversationaggregate': {
-    		return api.postConversationsAggregatesQuery(JSON.stringify(query.query));
-    	}
-    	default: {
-    		var err = 'Unknown query type: ' + query.type;
-    		log.error(err);
-    		throw err;
-    	}
-    }
+	var queryData = {};
+	var keyCount = _.keys(job.configuration.queries).length;
+	_.forOwn(job.configuration.queries, function(query, key) {
+	    switch(query.type.toLowerCase()) {
+	    	case 'conversationdetail': {
+	    		api.postConversationsDetailsQuery(JSON.stringify(query.query))
+	    			.then(function(data) {
+	    				queryData[key] = data;
+	    				if (_.keys(queryData).length == keyCount) {
+	    					deferred.resolve(queryData);
+	    				}
+	    			});
+	    		break;
+	    	}
+	    	case 'conversationaggregate': {
+	    		api.postConversationsAggregatesQuery(JSON.stringify(query.query))
+	    			.then(function(data) {
+	    				queryData[key] = data;
+	    				if (_.keys(queryData).length == keyCount) {
+	    					deferred.resolve(queryData);
+	    				}
+	    			});
+	    		break;
+	    	}
+	    	default: {
+	    		var err = 'Unknown query type: ' + query.type;
+	    		log.error(err);
+	    		throw err;
+	    	}
+	    }
+	});
+
+	return deferred.promise;
 }
 
 /**
