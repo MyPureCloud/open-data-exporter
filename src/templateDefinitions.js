@@ -135,12 +135,35 @@ TemplateDefinitions.prototype.countConversations = function(data) {
  * @param {Object} data - The data from a conversation detail query
  */
 TemplateDefinitions.prototype.countSegments = function(data) {
-	_.forEach(data.conversations, function(conversation) {
-		_.forEach(conversation.participants, function(participant, key) {
+	_.forOwn(data.conversations, function(conversation) {
+		_.forOwn(conversation.participants, function(participant, key) {
 			participant.sessionCount = participant.sessions.length;
-			_.forEach(participant.sessions, function(session, key) {
+			_.forOwn(participant.sessions, function(session, key) {
 				session.segmentCount = session.segments.length;
 			});
+		});
+	});
+};
+
+/**
+ * Assigns conversation.customerParticipant, conversation.customerParticipant.ani, and conversation.queue for each conversation
+ * @module  TemplateDefinitions
+ * @instance
+ * @function setCustomerParticipants
+ * @param {Object} data - The data from a conversation detail query
+ */
+TemplateDefinitions.prototype.setCustomerParticipants = function(data) {
+	_.forOwn(data.conversations, function(conversation) {
+		_.forOwn(conversation.participants, function(participant) {
+			if (participant.purpose == 'customer') {
+				conversation.customerParticipant = participant;
+				_.forOwn(conversation.customerParticipant.sessions, function(session) {
+					if (session.ani)
+						conversation.customerParticipant.ani = session.ani;
+				});
+			} else if (participant.purpose == 'acd') {
+				conversation.queue = participant;
+			}
 		});
 	});
 };
@@ -177,14 +200,11 @@ TemplateDefinitions.prototype.setJobData = function(data, job, configuration) {
 	// Populate vars from config
 	setCustomData(this.vars, config.settings.customData);
 	setCustomData(this.vars, job.customData);
-	setCustomDataFromObjects(this.vars, job.configurations);
-	var _this = this;
-	_.forOwn(job.configurations, function(configuration) {
-		setCustomDataFromObjects(_this.vars, configuration.queries);
-		setCustomDataFromObjects(_this.vars, configuration.transforms);
-		setCustomDataFromObjects(_this.vars, configuration.templates);
-		setCustomDataFromObjects(_this.vars, configuration.exports);
-	});
+	setCustomDataFromObjects(this.vars, configuration);
+	setCustomDataFromObjects(this.vars, configuration.queries);
+	setCustomDataFromObjects(this.vars, configuration.transforms);
+	setCustomDataFromObjects(this.vars, configuration.templates);
+	setCustomDataFromObjects(this.vars, configuration.exports);
 
 	// Regenerate derived vars
 	generateDerivedVars(this);

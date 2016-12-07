@@ -23,7 +23,7 @@ var log = new Logger('executor');
 /**
  * A module to manage executing templates
  * @module  Executor
- * @property {TemplateDefinitions} [defs] - The TemplateDefinitions object
+ * @property {TemplateDefinitions} defs - The TemplateDefinitions object
  */
 function Executor() {
 	// Don't strip whitespace from templates
@@ -89,9 +89,9 @@ Executor.prototype.executeJobs = function(jobNames, deferred) {
 		return deferred.promise;
 	}
 
+	// Pop job name and get job
 	var jobName = jobNames.shift();
 	var job = config.settings.jobs[jobName];
-	var _this = this;
 
 	// Job found?
 	if (!job) {
@@ -101,9 +101,10 @@ Executor.prototype.executeJobs = function(jobNames, deferred) {
 	}
 
 	// Execute job
+	var _this = this;
 	this.executeJob(job)
 		.then(function() {
-			return _this.executeJobs(jobNames, deferred);
+			_this.executeJobs(jobNames, deferred);
 		})
 		.catch(function(error) {
 			log.error(error.stack);
@@ -182,6 +183,10 @@ function executeConfigurations(job, configurationNames, _this, jobLog, deferred)
 		executeConfigurations(job, configurationNames, _this, jobLog, deferred);
 		return deferred.promise;
 	}
+
+	// Reset defs object for every configuration
+	_this.defs = new TemplateDefinitions();
+	_this.defs.initializeVars();
 
 	// Process configuration
 	jobLog.debug('Processing configuration: ' + configuration.name);
