@@ -41,3 +41,4 @@ jspm_packages
 src/config.json
 local
 src/out
+config/*/output
