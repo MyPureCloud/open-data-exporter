@@ -169,19 +169,23 @@ TemplateDefinitions.prototype.setVars = function(vars) {
 	generateDerivedVars(this);
 };
 
-TemplateDefinitions.prototype.setJobData = function(data, job) {
+TemplateDefinitions.prototype.setJobData = function(data, job, configuration) {
 	this.data = data;
 	this.job = job;
+	this.configuration = configuration;
 
 	// Populate vars from config
 	// Load order (left to right): global > job > configuration > query > transform > template, export
 	setCustomData(this.vars, config.settings.customData);
 	setCustomData(this.vars, job.customData);
-	setCustomData(this.vars, job.configuration.customData);
-	setCustomDataFromObjects(this.vars, job.configuration.queries);
-	setCustomDataFromObjects(this.vars, job.configuration.transforms);
-	setCustomDataFromObjects(this.vars, job.configuration.templates);
-	setCustomDataFromObjects(this.vars, job.configuration.exports);
+	setCustomDataFromObjects(this.vars, job.configurations);
+	var _this = this;
+	_.forOwn(job.configurations, function(configuration) {
+		setCustomDataFromObjects(_this.vars, configuration.queries);
+		setCustomDataFromObjects(_this.vars, configuration.transforms);
+		setCustomDataFromObjects(_this.vars, configuration.templates);
+		setCustomDataFromObjects(_this.vars, configuration.exports);
+	});
 
 	// Regenerate derived vars
 	generateDerivedVars(this);
