@@ -27,6 +27,7 @@
   	"purecloud_api_sdk_javascript": "0.x.x >=0.72.7",
   	"q": ">=1.4.1",
     "moment": ">=2.15.2",
+    "moment-timezone": ">=0.5.10",
     "colors": ">=1.1.2",
     "strip-ansi": ">=3.0.1",
     "lodash": ">=4.16.5",

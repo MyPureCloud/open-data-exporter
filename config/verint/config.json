@@ -89,7 +89,7 @@
     },
     "verint_agent_scorecard_report_template": {
       "name": "verint_agent Scorecard Report template",
-      "template": "Verint Report\nDate:{{#def.formatDate(def.vars.currentIntervalStart, 'MM/DD/YYYY')}}\nStart Time:{{#def.formatDate(def.vars.currentIntervalStart, 'HH:mm')}}\nEnd Time:{{#def.formatDate(def.addDuration(def.vars.currentIntervalStart, def.vars.interval), 'HH:mm')}}\n\nAGENT_ID DATE STAFF_TIME TALK_TIME ACW_TIME HOLD_TIME AUX_ALL_TIME AUX_IN_TIME AUX_OUT_TIME IDLE_TIME ACDCALLS\n\n{{~it.data.verint_agent_scorecard_report_call_query.results :result}}{{=result.group.userId}} {{=it.formatDate(it.getIntervalStart(result.flatData.c0.interval), 'YYYY-MM-DD')}} <STAFF_TIME> {{=result.flatData.c0.flatMetrics.tTalk.stats.sum}} {{=result.flatData.c0.flatMetrics.tAcw.stats.sum}} {{=result.flatData.c0.flatMetrics.tHeld.stats.sum}} <AUX_ALL_TIME> <AUX_IN_TIME> <AUX_OUT_TIME> <IDLE_TIME> {{=result.flatData.c0.flatMetrics.tHandle.stats.sum}} \n{{~}}",
+      "template": "Verint Report\nDate:{{#def.formatDate(def.vars.currentIntervalStart, 'MM/DD/YYYY')}}\nStart Time:{{#def.formatDate(def.vars.currentIntervalStart, 'HH:mm')}}\nEnd Time:{{#def.formatDate(def.addDuration(def.vars.currentIntervalStart, def.vars.interval), 'HH:mm')}}\n\nAGENT_ID DATE STAFF_TIME TALK_TIME ACW_TIME HOLD_TIME AUX_ALL_TIME AUX_IN_TIME AUX_OUT_TIME IDLE_TIME ACDCALLS\n\n{{~it.data.verint_agent_scorecard_report_call_query.results :result}}{{=result.group.userId}} {{=result.flatData.c0.interval}} {{=it.formatDate(it.parseInterval(result.flatData.c0.interval).start)}} <STAFF_TIME> {{=result.flatData.c0.flatMetrics.tTalk.stats.sum}} {{=result.flatData.c0.flatMetrics.tAcw.stats.sum}} {{=result.flatData.c0.flatMetrics.tHeld.stats.sum}} <AUX_ALL_TIME> <AUX_IN_TIME> <AUX_OUT_TIME> <IDLE_TIME> {{=result.flatData.c0.flatMetrics.tHandle.stats.sum}} \n{{~}}",
       "fileName": "verint_agent_scorecard_report_{{#def.formatDate(def.vars.currentIntervalStart,'YYYY_MM_DD_HH.mm')}}.txt"
     }
   },
@@ -192,6 +192,6 @@
     }
   },
   "customData": {
-    "globalVar": "global value"
+    "timezoneOverride": "America/Los_Angeles"
   }
 }

@@ -1,5 +1,5 @@
 var fs = require('fs');
-var moment = require('moment');
+var moment = require('moment-timezone');
 var _ = require('lodash');
 
 var config = require('./config');
@@ -208,11 +208,12 @@ TemplateDefinitions.prototype.flattenAggregateData = function(response, ensureSt
 	});
 };
 
-TemplateDefinitions.prototype.getIntervalStart = function(interval) {
+TemplateDefinitions.prototype.parseInterval = function(interval) {
 	var intervals = interval.split('/');
-	var intervalStart = new moment(intervals[0]);
-	log.debug(intervalStart.format(constants.strings.isoDateFormat), 'intervalStart: ');
-	return intervalStart;
+	return {
+		'start': new moment(intervals[0]),
+		'end': new moment(intervals[1])
+	};
 };
 
 
@@ -263,6 +264,14 @@ module.exports = TemplateDefinitions;
 
 
 function generateDerivedVars(defs) {
+	if (defs.vars.timezoneOverride) {
+		// Convert base date var to desired timezone
+		defs.vars.date.tz(defs.vars.timezoneOverride);
+
+		// Set as the default timezone to ensure future date calculations are done in the override timezone
+		moment.tz.setDefault(defs.vars.timezoneOverride);
+	}
+
 	// Parse interval to object for math operations (moment.js doesn't parse ISO-8601 durations passed to .add or .subtract)
 	var interval = moment.duration(defs.vars.interval);
 	var now = defs.vars.date;
