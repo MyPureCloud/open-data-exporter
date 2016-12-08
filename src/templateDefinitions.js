@@ -102,9 +102,9 @@ TemplateDefinitions.prototype.addDuration = function(date, duration) {
  *
  * @return {Object} The metric object
  */
-TemplateDefinitions.prototype.getMetric = function(data, metricName) {
+TemplateDefinitions.prototype.getMetric = function(metrics, metricName) {
 	var m = null;
-	data[0].metrics.forEach(function(metric) {
+	_.forEach(metrics, function(metric) {
 		if (m !== null) return;
 		if (metric.metric.toLowerCase() == metricName.toLowerCase()) {
 			m = metric;
@@ -168,6 +168,52 @@ TemplateDefinitions.prototype.setCustomerParticipants = function(data) {
 	});
 };
 
+TemplateDefinitions.prototype.dataArrayToProperty = function(response) {
+	_.forOwn(response.results, function(result) {
+		result.data = result.data[0];
+	});
+
+	log.debug(response);
+};
+
+TemplateDefinitions.prototype.flattenAggregateData = function(response, ensureStatNames) {
+	if (!ensureStatNames)
+		ensureStatNames = '';
+	var statNames = ensureStatNames.split('|');
+	_.forOwn(response.results, function(result) {
+		result.flatData = {};
+		_.forEach(result.data, function(data, i) {
+			key = 'c' + i;
+			result.flatData[key] = data;
+
+			// Set metric objects
+			result.flatData[key].flatMetrics = {};
+			_.forEach(result.flatData[key].metrics, function(metric) {
+				result.flatData[key].flatMetrics[metric.metric] = metric;
+			});
+
+			// Ensure metric objects exist
+			_.forEach(statNames, function(statName) {
+				if (!result.flatData[key].flatMetrics[statName])
+					result.flatData[key].flatMetrics[statName] = {
+						"metric": statName,
+						"stats": {
+							"max": 0,
+							"count": 0,
+							"sum": 0
+						}
+					};
+			});
+		});
+	});
+};
+
+TemplateDefinitions.prototype.getIntervalStart = function(interval) {
+	var intervals = interval.split('/');
+	var intervalStart = new moment(intervals[0]);
+	log.debug(intervalStart.format(constants.strings.isoDateFormat), 'intervalStart: ');
+	return intervalStart;
+};
 
 
 /**
@@ -200,7 +246,7 @@ TemplateDefinitions.prototype.setJobData = function(data, job, configuration) {
 	// Populate vars from config
 	setCustomData(this.vars, config.settings.customData);
 	setCustomData(this.vars, job.customData);
-	setCustomDataFromObjects(this.vars, configuration);
+	setCustomData(this.vars, configuration.customData);
 	setCustomDataFromObjects(this.vars, configuration.queries);
 	setCustomDataFromObjects(this.vars, configuration.transforms);
 	setCustomDataFromObjects(this.vars, configuration.templates);
@@ -221,32 +267,44 @@ function generateDerivedVars(defs) {
 	var interval = moment.duration(defs.vars.interval);
 	var now = defs.vars.date;
 
-	// Populate derived variables
-	defs.vars.currentHour = now.clone().startOf('hour');
-	defs.vars.previousHour = now.clone().startOf('hour').subtract(1, 'hour');
-	defs.vars.previousMidnight = now.clone().startOf('day');
+	// Populate vars derived directly from now
+	defs.vars.startOfHour = now.clone().startOf('hour');
+	defs.vars.previousStartOfHour = defs.vars.startOfHour.clone().subtract(1, 'hour');
 
-	//TODO: handle interval calculation starting from midnight for intervals >1h
-	defs.vars.currentIntervalStart = defs.vars.currentHour.clone();
-	defs.vars.previousIntervalStart = defs.vars.currentHour.clone().subtract(interval);
-	for (i=1;i<60;i++) {
-		var nextInterval = defs.vars.currentIntervalStart.clone().add(interval);
-		if (nextInterval < now) {
-			// Interval does not exceed current time, set it
-			defs.vars.currentIntervalStart = nextInterval;
-			defs.vars.previousIntervalStart = nextInterval.clone().subtract(interval);
-		}
-		else {
+	defs.vars.startOfDay = now.clone().startOf('day');
+	defs.vars.previousStartOfDay = defs.vars.startOfDay.clone().subtract(1, 'day');
+
+	defs.vars.startOfWeek = now.clone().startOf('week');
+	defs.vars.previousStartOfWeek = defs.vars.startOfWeek.clone().subtract(1, 'week');
+
+	defs.vars.startOfMonth = now.clone().startOf('month');
+	defs.vars.previousStartOfMonth = defs.vars.startOfMonth.clone().subtract(1, 'month');
+
+	defs.vars.startOfQuarter = now.clone().startOf('quarter');
+	defs.vars.previousStartOfQuarter = defs.vars.startOfQuarter.clone().subtract(1, 'quarter');
+
+	defs.vars.startOfYear = now.clone().startOf('year');
+	defs.vars.previousStartOfYear = defs.vars.startOfYear.clone().subtract(1, 'year');
+
+	// Initialize current interval start to midnight "this morning"
+	defs.vars.currentIntervalStart = defs.vars.startOfDay;
+
+	// Iterate intervals till we find the current one
+	// Max=1440 for a potential minimum resolution of 1 minute.
+	for (i=1;i<1440;i++) {
+		if (defs.vars.currentIntervalStart.clone().add(interval).isAfter(now)) {
+			// +1 interval > now, so the current value is the current interval. Our work here is done.
 			break;
+		} else {
+			// Add interval and continue
+			defs.vars.currentIntervalStart.add(interval);
 		}
 	}
 
+	// Populate vars derived from current interval start
+	defs.vars.previousIntervalStart = defs.vars.currentIntervalStart.clone().subtract(interval);
 	defs.vars.currentInterval = defs.vars.currentIntervalStart.format(constants.strings.isoDateFormat) + '/' + defs.vars.currentIntervalStart.clone().add(interval).format(constants.strings.isoDateFormat);
 	defs.vars.previousInterval = defs.vars.previousIntervalStart.format(constants.strings.isoDateFormat) + '/' + defs.vars.previousIntervalStart.clone().add(interval).format(constants.strings.isoDateFormat);
-
-	// TODO: add more derived vars for computing larger intervals: 
-	// - cur/prev day (midnight)
-	// - last/previous<day of week> (lastMonday, previousMonday)
 }
 
 function setCustomDataFromObjects(vars, obj) {

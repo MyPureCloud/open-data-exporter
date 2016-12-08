@@ -44,12 +44,14 @@ Executor.prototype.initialize = function() {
 
 	api.login()
 		// Execute templates in queries to prepare them for API requests
+		/*
 		.then(() => processQueries(config.settings, this.defs))
 		.then(function() {
 			log.verbose('Queries processed successfully');
 			if (config.args.showconfig === true) 
 				log.debug(JSON.stringify(config.settings,null,2));
 		})
+		*/
 		// Dereference JSON references. This makes the config file easy to use
 		.then(() => refParser.dereference(config.settings))
 		.then(function(schema) {
@@ -187,9 +189,11 @@ function executeConfigurations(job, configurationNames, _this, jobLog, deferred)
 	// Reset defs object for every configuration
 	_this.defs = new TemplateDefinitions();
 	_this.defs.initializeVars();
+	_this.defs.setJobData({}, job, configuration);
 
 	// Process configuration
 	jobLog.debug('Processing configuration: ' + configuration.name);
+	processQueries(configuration.queries, _this.defs);
 	getQueryData(configuration, _this)
 		.then(function(data) {
 			// Compile all the custom attributes in the job to prepare for templating
@@ -340,15 +344,16 @@ function getQueryData(configuration, _this) {
  * @param {Object}              settings - The settings object
  * @param {TemplateDefinitions} defs     - The TemplateDefinitions object
  */
-function processQueries(settings, defs) {
+function processQueries(queries, defs) {
 	log.verbose('Processing queries...');
-	_.forOwn(settings.queries, function(query, queryName) {
+	_.forOwn(queries, function(query, queryName) {
+		/*
 		// Reset the vars for the definition
 		defs.initializeVars();
 		
 		// Set custom data from the query
 		defs.setVars(query.customData);
-
+		*/
 		// Process query
 		processQueriesObject(query, defs);
 	});
