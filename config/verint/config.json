@@ -1,0 +1,197 @@
+{
+  "pureCloud": {
+    "clientId": "",
+    "clientSecret": "",
+    "timeout": 10000
+  },
+  "queries": {
+    "verint_agent_detail_query": {
+      "name": "verint_agent Detail Query",
+      "type": "conversationAggregate",
+      "query": {
+        "interval": "{{#def.vars.previousInterval}}",
+        "groupBy": [
+          "userId",
+          "queueId"
+        ],
+        "filter": {
+          "type": "and",
+          "predicates": [
+            {
+              "type": "dimension",
+              "dimension": "interactionType",
+              "operator": "matches",
+              "value": "contactCenter"
+            }
+          ]
+        },
+        "metrics": [
+          "tAnswered",
+          "tTalk",
+          "tAcw"
+        ]
+      }
+    },
+    "verint_agent_scorecard_report_call_query": {
+      "name": "verint_agent Scorecard Report - Call Query",
+      "type": "conversationAggregate",
+      "query": {
+        "interval": "{{#def.vars.currentInterval}}",
+        "groupBy": [
+          "userId"
+        ],
+        "filter": {
+          "type": "and",
+          "predicates": [
+            {
+              "type": "dimension",
+              "dimension": "interactionType",
+              "operator": "matches",
+              "value": "contactcenter"
+            },
+            {
+              "type": "dimension",
+              "dimension": "mediaType",
+              "operator": "matches",
+              "value": "voice"
+            }
+          ]
+        },
+        "metrics": [
+          "tTalk",
+          "tAcw",
+          "tHeld",
+          "tHandle"
+        ]
+      }
+    }
+  },
+  "transforms": {
+    "verint_agent_detail_transform": {
+      "name": "verint_agent Detail Transform",
+      "expressions": []
+    },
+    "verint_agent_scorecard_report_transform": {
+      "name": "verint_agent Scorecard Report Transform",
+      "expressions": [
+        "{{#def.flattenAggregateData(def.data.verint_agent_scorecard_report_call_query, 'tHandle|tHeld|tAcw|tTalk')}}"
+      ]
+    }
+  },
+  "templates": {
+    "verint_agent_detail_template": {
+      "name": "verint_agent detail template",
+      "template": "AGENT DETAIL REPORT\n{{#def.formatDate(def.vars.currentIntervalStart,'YYYY-MM-DDTHH:mm:ss.SSSZZ')}}\r\n{{~it.data.verint_agent_detail_query.results :result}}{{=result.group.queueId}}|{{=result.group.userId}}|{{=it.getMetric(result.data, 'tAnswered').stats.count}}|{{=it.getMetric(result.data, 'tTalk').stats.max}}|{{=it.getMetric(result.data, 'tAcw').stats.max}}\n{{~}}END AGENT DETAIL REPORT",
+      "fileName": "verint_agent_detail_template_{{#def.formatDate(def.vars.date,'YYYY_MM_DD_HH.mm.SSS')}}.txt",
+      "customData": {
+        "templateData": "verint"
+      }
+    },
+    "verint_agent_scorecard_report_template": {
+      "name": "verint_agent Scorecard Report template",
+      "template": "Verint Report\nDate:{{#def.formatDate(def.vars.currentIntervalStart, 'MM/DD/YYYY')}}\nStart Time:{{#def.formatDate(def.vars.currentIntervalStart, 'HH:mm')}}\nEnd Time:{{#def.formatDate(def.addDuration(def.vars.currentIntervalStart, def.vars.interval), 'HH:mm')}}\n\nAGENT_ID DATE STAFF_TIME TALK_TIME ACW_TIME HOLD_TIME AUX_ALL_TIME AUX_IN_TIME AUX_OUT_TIME IDLE_TIME ACDCALLS\n\n{{~it.data.verint_agent_scorecard_report_call_query.results :result}}{{=result.group.userId}} {{=it.formatDate(it.getIntervalStart(result.flatData.c0.interval), 'YYYY-MM-DD')}} <STAFF_TIME> {{=result.flatData.c0.flatMetrics.tTalk.stats.sum}} {{=result.flatData.c0.flatMetrics.tAcw.stats.sum}} {{=result.flatData.c0.flatMetrics.tHeld.stats.sum}} <AUX_ALL_TIME> <AUX_IN_TIME> <AUX_OUT_TIME> <IDLE_TIME> {{=result.flatData.c0.flatMetrics.tHandle.stats.sum}} \n{{~}}",
+      "fileName": "verint_agent_scorecard_report_{{#def.formatDate(def.vars.currentIntervalStart,'YYYY_MM_DD_HH.mm')}}.txt"
+    }
+  },
+  "exports": {
+    "verint_file_export": {
+      "name": "Verint file export",
+      "type": "file",
+      "destination": "../config/verint/output/",
+      "customData": {}
+    }
+  },
+  "configurations": {
+    "verint_agent_detail_config": {
+      "name": "AGENT DETAIL REPORT",
+      "queries": {
+        "verint_agent_detail_query": {
+          "$ref": "#/queries/verint_agent_detail_query"
+        }
+      },
+      "transforms": {
+        "verint_agent_detail_transform": {
+          "$ref": "#/transforms/verint_agent_detail_transform"
+        }
+      },
+      "templates": {
+        "verint_agent_detail_template": {
+          "$ref": "#/templates/verint_agent_detail_template"
+        }
+      },
+      "exports": {
+        "verint_file_export": {
+          "$ref": "#/exports/verint_file_export"
+        }
+      },
+      "customData": {}
+    },
+    "verint_agent_scorecard_report_config": {
+      "name": "AGENT DETAIL REPORT",
+      "queries": {
+        "verint_agent_scorecard_report_call_query": {
+          "$ref": "#/queries/verint_agent_scorecard_report_call_query"
+        }
+      },
+      "transforms": {
+        "verint_agent_scorecard_report_transform": {
+          "$ref": "#/transforms/verint_agent_scorecard_report_transform"
+        }
+      },
+      "templates": {
+        "verint_agent_scorecard_report_template": {
+          "$ref": "#/templates/verint_agent_scorecard_report_template"
+        }
+      },
+      "exports": {
+        "verint_file_export": {
+          "$ref": "#/exports/verint_file_export"
+        }
+      },
+      "customData": {
+        "interval": "P1D"
+      }
+    }
+  },
+  "jobs": {
+    "verint_agent_detail_job": {
+      "name": "verint_agent detail job",
+      "configurations": {
+        "verint_agent_detail_config": {
+          "$ref": "#/configurations/verint_agent_detail_config"
+        }
+      },
+      "cron": "10,40 * * * * *",
+      "customData": {
+      }
+    },
+    "verint_agent_scorecard_report_job": {
+      "name": "verint_agent Scorecard Report job",
+      "configurations": {
+        "verint_agent_scorecard_report_config": {
+          "$ref": "#/configurations/verint_agent_scorecard_report_config"
+        }
+      },
+      "cron": "10,40 * * * * *",
+      "customData": {
+      }
+    },
+    "verint_all": {
+      "name": "Verint all jobs",
+      "configurations": {
+        "verint_agent_detail_config": {
+          "$ref": "#/configurations/verint_agent_detail_config"
+        },
+        "verint_agent_scorecard_report_config": {
+          "$ref": "#/configurations/verint_agent_scorecard_report_config"
+        }
+      },
+      "cron": "10,40 * * * * *",
+      "customData": {
+      }
+    }
+  },
+  "customData": {
+    "globalVar": "global value"
+  }
+}

@@ -1,0 +1,259 @@
+{
+  "pureCloud": {
+    "clientId": "",
+    "clientSecret": "",
+    "timeout": 10000
+  },
+  "queries": {
+    "conversation_detail_query": {
+      "name": "Conversation detail query",
+      "type": "conversationDetail",
+      "customData": {},
+      "query": {
+        "interval": "2016-10-17T06:12:34.000Z/2016-10-22T05:59:59.000Z",
+        "order": "asc",
+        "orderBy": "conversationStart",
+        "paging": {
+          "pageSize": 25,
+          "pageNumber": 1
+        }
+      }
+    },
+    "currentInterval": {
+      "name": "currentInterval query",
+      "type": "conversationDetail",
+      "customData": {
+        "interval": "PT2M"
+      },
+      "query": {
+        "interval": "{{#def.vars.currentInterval}}",
+        "order": "asc",
+        "orderBy": "conversationStart",
+        "paging": {
+          "pageSize": 25,
+          "pageNumber": 1
+        }
+      }
+    },
+    "previousInterval": {
+      "name": "previousInterval query",
+      "type": "conversationDetail",
+      "customData": {},
+      "query": {
+        "interval": "{{#def.vars.previousInterval}}",
+        "order": "asc",
+        "orderBy": "conversationStart",
+        "paging": {
+          "pageSize": 25,
+          "pageNumber": 1
+        }
+      }
+    },
+    "abandons_query": {
+      "name": "abandons query",
+      "type": "conversationDetail",
+      "customData": {},
+      "query": {
+        "interval": "2016-07-27T19:21:36.000Z/2016-08-10T19:21:36.350Z",
+        "order": "asc",
+        "orderBy": "conversationStart",
+        "paging": {
+          "pageSize": 25,
+          "pageNumber": 1
+        },
+        "segmentFilters": [
+          {
+            "type": "or",
+            "clauses": [
+              {
+                "type": "and",
+                "predicates": [
+                  {
+                    "type": "dimension",
+                    "dimension": "disconnectType",
+                    "operator": "matches",
+                    "value": "peer"
+                  },
+                  {
+                    "type": "dimension",
+                    "dimension": "purpose",
+                    "operator": "matches",
+                    "value": "acd"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "transforms": {
+    "conversation_detail_transform": {
+      "name": "Conversation detail transform",
+      "expressions": [
+        "{{#def.vars.conversationCount=def.countConversations(def.data.conversation_detail_query)}}",
+        "{{#def.countSegments(def.data.conversation_detail_query)}}"
+      ],
+      "customData": {
+        "transformData": "My transform data"
+      }
+    },
+    "abandons_transform": {
+      "name": "Abandons transform",
+      "expressions": [
+        "{{#def.setCustomerParticipants(def.data.abandons_query)}}"
+      ],
+      "customData": {
+        "transformData": "My transform data"
+      }
+    }
+  },
+  "templates": {
+    "conversation_detail_template": {
+      "name": "Conversation detail template",
+      "template": "Run date: {{#def.vars.date}}\nJob: {{#def.job.name}}\nConfig: {{#def.configuration.name}}\nConversations: {{#def.vars.conversationCount}}\n{{~it.data.conversation_detail_query.conversations :conversation}}Conversation ID: {{=conversation.conversationId}} ({{=conversation.conversationStart}})\n{{~conversation.participants :participant}}    {{=participant.purpose}} \"{{=participant.participantName}}\" ({{=participant.sessionCount}} sessions)\n{{~}}{{~}}",
+      "fileName": "conversation_detail_template_{{#def.formatDate(def.vars.date,'YYYY_MM_DD_HH.mm.SSS')}}.txt",
+      "customData": {
+        "templateData": "My template data"
+      }
+    },
+    "abandons_template": {
+      "name": "Abandons template",
+      "template": "ABANDONED CONVERSATIONS\nRun date: {{#def.vars.date}}\nInterval: {{#def.vars.previousInterval}}\nJob: {{#def.job.name}}\nConfig: {{#def.configuration.name}}\n{{~it.data.abandons_query.conversations :conversation}}{{=conversation.conversationId}}|{{=conversation.queue.participantName}}|{{=conversation.customerParticipant.participantName}}|{{=conversation.customerParticipant.ani}}\n{{~}}",
+      "fileName": "abandons_{{#def.formatDate(def.vars.date,'YYYY_MM_DD_HH.mm.SSS')}}.txt",
+      "customData": {
+        "templateData": "My template data"
+      }
+    }
+  },
+  "exports": {
+    "conversation_detail_export": {
+      "name": "Conversation detail file export",
+      "type": "file",
+      "destination": "../local/conversation_detail/",
+      "customData": {
+        "exportData": "My export data"
+      }
+    },
+    "multi_export": {
+      "name": "Conversation detail file export",
+      "type": "file",
+      "destination": "../local/multi_export/",
+      "customData": {
+        "exportData": "My export data"
+      }
+    }
+  },
+  "configurations": {
+    "conversation_detail_configuration": {
+      "name": "Conversation detail configuration",
+      "queries": {
+        "conversation_detail_query": {
+          "$ref": "#/queries/conversation_detail_query"
+        }
+      },
+      "transforms": {
+        "conversation_detail_transform": {
+          "$ref": "#/transforms/conversation_detail_transform"
+        }
+      },
+      "templates": {
+        "conversation_detail_template": {
+          "$ref": "#/templates/conversation_detail_template"
+        }
+      },
+      "exports": {
+        "conversation_detail_export": {
+          "$ref": "#/exports/conversation_detail_export"
+        }
+      },
+      "customData": {
+        "configData": "My config data",
+        "interval": "PT2H"
+      }
+    },
+    "abandons_config": {
+      "name": "Abandons Configuration",
+      "queries": {
+        "abandons_query": {
+          "$ref": "#/queries/abandons_query"
+        }
+      },
+      "transforms": {
+        "abandons_transform": {
+          "$ref": "#/transforms/abandons_transform"
+        }
+      },
+      "templates": {
+        "abandons_template": {
+          "$ref": "#/templates/abandons_template"
+        }
+      },
+      "exports": {
+        "multi_export": {
+          "$ref": "#/exports/multi_export"
+        }
+      },
+      "customData": {}
+    },
+    "multi_config": {
+      "name": "Multi Configuration",
+      "queries": {
+        "conversation_detail_query": {
+          "$ref": "#/queries/conversation_detail_query"
+        }
+      },
+      "transforms": {
+        "conversation_detail_transform": {
+          "$ref": "#/transforms/conversation_detail_transform"
+        }
+      },
+      "templates": {
+        "conversation_detail_template": {
+          "$ref": "#/templates/conversation_detail_template"
+        }
+      },
+      "exports": {
+        "multi_export": {
+          "$ref": "#/exports/multi_export"
+        },
+        "conversation_detail_export": {
+          "$ref": "#/exports/conversation_detail_export"
+        }
+      },
+      "customData": {}
+    }
+  },
+  "jobs": {
+    "conversation_detail_job": {
+      "name": "Conversation detail job",
+      "configurations": {
+        "conversation_detail_configuration": {
+          "$ref": "#/configurations/conversation_detail_configuration"
+        }
+      },
+      "cron": "10,40 * * * * *",
+      "customData": {}
+    },
+    "multi_job": {
+      "name": "MULITPASS",
+      "configurations": {
+        "multi_config": {
+          "$ref": "#/configurations/multi_config"
+        },
+        "conversation_detail_configuration": {
+          "$ref": "#/configurations/conversation_detail_configuration"
+        },
+        "abandons_config": {
+          "$ref": "#/configurations/abandons_config"
+        }
+      },
+      "cron": "10,40 * * * * *",
+      "customData": {}
+    }
+  },
+  "customData": {
+    "company": "Genesys"
+  }
+}
