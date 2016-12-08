@@ -16,6 +16,12 @@ function Config() {
 		this.args.config = './config.json';
 	console.log(colors.dim('loading config from ' + this.args.config));
 	this.settings = require(this.args.config);
+
+	// Override client ID and secret with command line values
+	if (this.args.clientid)
+		this.settings.pureCloud.clientId = this.args.clientid;
+	if (this.args.clientsecret)
+		this.settings.pureCloud.clientSecret = this.args.clientsecret;
 }
 
 
