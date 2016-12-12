@@ -8,6 +8,7 @@
     "verint_agent_detail_query": {
       "name": "verint_agent Detail Query",
       "type": "conversationAggregate",
+      "action": "query",
       "query": {
         "interval": "{{#def.vars.previousInterval}}",
         "groupBy": [
@@ -35,6 +36,7 @@
     "verint_agent_scorecard_report_call_query": {
       "name": "verint_agent Scorecard Report - Call Query",
       "type": "conversationAggregate",
+      "strategy": "query",
       "query": {
         "interval": "{{#def.vars.currentInterval}}",
         "groupBy": [
@@ -64,6 +66,56 @@
           "tHandle"
         ]
       }
+    },
+    "verint_agent_scorecard_report_user_query": {
+      "name": "verint_agent Scorecard Report - User Query",
+      "type": "userAggregate",
+      "strategy": "query",
+      "transforms": {
+        "verint_agent_scorecard_report_user_query_transform": { "$ref": "#/transforms/verint_agent_scorecard_report_user_query_transform" }
+      },
+      "query": {
+        "interval": "{{#def.vars.currentInterval}}",
+        "groupBy": [
+          "userId"
+        ],
+        "filter": {
+          "type": "or",
+          "predicates": []
+        },
+        "metrics": [
+          "tAgentRoutingStatus"
+        ]
+      }
+    },
+    "verint_agent_scorecard_report_user_query_repeat": {
+      "name": "verint_agent Scorecard Report - User Query",
+      "type": "userAggregate",
+      "strategy": {
+        "type": "repeat",
+        "collection": "def.data.verint_agent_scorecard_report_call_query.results",
+        "destination": "def.data.verint_agent_scorecard_report_user_query.{{=it.group.userId}}"
+      },
+      "query": {
+        "interval": "{{#def.vars.currentInterval}}",
+        "groupBy": [
+          "userId"
+        ],
+        "filter": {
+          "type": "or",
+          "predicates": [
+            {
+              "type": "dimension",
+              "dimension": "userId",
+              "operator": "matches",
+              "value": "{{=it.group.userId}}"
+            }
+          ]
+        },
+        "metrics": [
+          "tAgentRoutingStatus"
+        ]
+      }
     }
   },
   "transforms": {
@@ -73,8 +125,24 @@
     },
     "verint_agent_scorecard_report_transform": {
       "name": "verint_agent Scorecard Report Transform",
+      "type": "transform",
       "expressions": [
-        "{{#def.flattenAggregateData(def.data.verint_agent_scorecard_report_call_query, 'tHandle|tHeld|tAcw|tTalk')}}"
+        "{{#def.aggregateVerintData(def.data)}}",
+        "{{#def.flattenAggregateData(def.data.verint_agent_scorecard_report_call_query, 'tAgentRoutingStatus_ALL|tTalk|tAcw|tHeld|tHandle|tAgentRoutingStatus_AUX_IN_TIME|tAgentRoutingStatus_COMMUNICATING|tAgentRoutingStatus_IDLE')}}"
+      ]
+    },
+    "verint_agent_scorecard_report_user_query_transform": {
+      "name": "verint_agent_scorecard_report_user_query_transform",
+      "type": "transform",
+      "expressions": [
+        "{{#def.populateUserIdPredicates(def.data.verint_agent_scorecard_report_call_query.results, def.vars.query)}}"
+      ]
+    },
+    "write_data": {
+      "name": "write_data",
+      "type": "transform",
+      "expressions": [
+        "{{#def.writeData(def.data, '../local/data.json')}}"
       ]
     }
   },
@@ -89,7 +157,7 @@
     },
     "verint_agent_scorecard_report_template": {
       "name": "verint_agent Scorecard Report template",
-      "template": "Verint Report\nDate:{{#def.formatDate(def.vars.currentIntervalStart, 'MM/DD/YYYY')}}\nStart Time:{{#def.formatDate(def.vars.currentIntervalStart, 'HH:mm')}}\nEnd Time:{{#def.formatDate(def.addDuration(def.vars.currentIntervalStart, def.vars.interval), 'HH:mm')}}\n\nAGENT_ID DATE STAFF_TIME TALK_TIME ACW_TIME HOLD_TIME AUX_ALL_TIME AUX_IN_TIME AUX_OUT_TIME IDLE_TIME ACDCALLS\n\n{{~it.data.verint_agent_scorecard_report_call_query.results :result}}{{=result.group.userId}} {{=result.flatData.c0.interval}} {{=it.formatDate(it.parseInterval(result.flatData.c0.interval).start)}} <STAFF_TIME> {{=result.flatData.c0.flatMetrics.tTalk.stats.sum}} {{=result.flatData.c0.flatMetrics.tAcw.stats.sum}} {{=result.flatData.c0.flatMetrics.tHeld.stats.sum}} <AUX_ALL_TIME> <AUX_IN_TIME> <AUX_OUT_TIME> <IDLE_TIME> {{=result.flatData.c0.flatMetrics.tHandle.stats.sum}} \n{{~}}",
+      "template": "Verint Report\nDate:{{#def.formatDate(def.vars.currentIntervalStart, 'MM/DD/YYYY')}}\nStart Time:{{#def.formatDate(def.vars.currentIntervalStart, 'HH:mm')}}\nEnd Time:{{#def.formatDate(def.addDuration(def.vars.currentIntervalStart, def.vars.interval), 'HH:mm')}}\n\nAGENT_ID DATE STAFF_TIME TALK_TIME ACW_TIME HOLD_TIME AUX_ALL_TIME AUX_IN_TIME AUX_OUT_TIME IDLE_TIME ACDCALLS\n\n{{~it.data.verint_agent_scorecard_report_call_query.results :result}}{{=result.group.userId}} {{=it.formatDate(it.parseInterval(result.flatData.c0.interval).start, 'YYYY-MM-DD')}} {{=result.flatData.c0.flatMetrics.tAgentRoutingStatus_ALL.stats.sum}} {{=result.flatData.c0.flatMetrics.tTalk.stats.sum}} {{=result.flatData.c0.flatMetrics.tAcw.stats.sum}} {{=result.flatData.c0.flatMetrics.tHeld.stats.sum}} {{=result.flatData.c0.flatMetrics.tHandle.stats.sum}} {{=result.flatData.c0.flatMetrics.tAgentRoutingStatus_AUX_IN_TIME.stats.sum}} {{=result.flatData.c0.flatMetrics.tAgentRoutingStatus_COMMUNICATING.stats.sum}} {{=result.flatData.c0.flatMetrics.tAgentRoutingStatus_IDLE.stats.sum}} {{=result.flatData.c0.flatMetrics.tHandle.stats.count}} \n{{~}}",
       "fileName": "verint_agent_scorecard_report_{{#def.formatDate(def.vars.currentIntervalStart,'YYYY_MM_DD_HH.mm')}}.txt"
     }
   },
@@ -128,14 +196,18 @@
     },
     "verint_agent_scorecard_report_config": {
       "name": "AGENT DETAIL REPORT",
-      "queries": {
+      "executionPlan": {
         "verint_agent_scorecard_report_call_query": {
           "$ref": "#/queries/verint_agent_scorecard_report_call_query"
-        }
-      },
-      "transforms": {
+        },
+        "verint_agent_scorecard_report_user_query": {
+          "$ref": "#/queries/verint_agent_scorecard_report_user_query"
+        },
         "verint_agent_scorecard_report_transform": {
           "$ref": "#/transforms/verint_agent_scorecard_report_transform"
+        },
+        "write_data": {
+          "$ref": "#/transforms/write_data"
         }
       },
       "templates": {
@@ -162,8 +234,7 @@
         }
       },
       "cron": "10,40 * * * * *",
-      "customData": {
-      }
+      "customData": {}
     },
     "verint_agent_scorecard_report_job": {
       "name": "verint_agent Scorecard Report job",
@@ -173,8 +244,7 @@
         }
       },
       "cron": "10,40 * * * * *",
-      "customData": {
-      }
+      "customData": {}
     },
     "verint_all": {
       "name": "Verint all jobs",
@@ -187,11 +257,10 @@
         }
       },
       "cron": "10,40 * * * * *",
-      "customData": {
-      }
+      "customData": {}
     }
   },
   "customData": {
-    "timezoneOverride": "America/Los_Angeles"
+    "timezoneOverride": "America/Indianapolis"
   }
 }

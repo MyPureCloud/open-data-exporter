@@ -23,11 +23,6 @@ executor.initialize()
 		if (!config.args.jobs) return;
 
 		// Manually execute jobs
-		/*
-		_.forEach(config.args.jobs.split(','), function(job) {
-			executor.executeJob(config.settings.jobs[job]);
-		});
-		*/
 		return executor.executeJobs(config.args.jobs.split(','));
 	})
 	.catch(function(error) {

@@ -43,15 +43,6 @@ Executor.prototype.initialize = function() {
 	var deferred = Q.defer();
 
 	api.login()
-		// Execute templates in queries to prepare them for API requests
-		/*
-		.then(() => processQueries(config.settings, this.defs))
-		.then(function() {
-			log.verbose('Queries processed successfully');
-			if (config.args.showconfig === true) 
-				log.debug(JSON.stringify(config.settings,null,2));
-		})
-		*/
 		// Dereference JSON references. This makes the config file easy to use
 		.then(() => refParser.dereference(config.settings))
 		.then(function(schema) {
@@ -191,23 +182,10 @@ function executeConfigurations(job, configurationNames, _this, jobLog, deferred)
 	_this.defs.initializeVars();
 	_this.defs.setJobData({}, job, configuration);
 
-	// Process configuration
-	jobLog.debug('Processing configuration: ' + configuration.name);
-	processQueries(configuration.queries, _this.defs);
-	getQueryData(configuration, _this)
-		.then(function(data) {
-			// Compile all the custom attributes in the job to prepare for templating
-			jobLog.verbose('Setting job data...');
-			_this.defs.setJobData(data, job, configuration);
-
-			// Execute data transforms
-			_.forOwn(configuration.transforms, function(transform, key) {
-				_.forEach(transform.expressions, function(expression, key) {
-					jobLog.verbose('Executing transform: ' + expression);
-					executeTemplate(expression, null, _this.defs);
-				});
-			});
-
+	// Process execution plan
+	jobLog.verbose('Processing execution plan for ' + configuration.name);
+	processExecutionPlan(configuration, _this, jobLog)
+		.then (function() {
 			// Compile and run the template 
 			//TODO: determine if a new defs object should be used or if reuse is fine. Concern: functions added during template compilation may be added to defs
 			jobLog.verbose('Executing templates...');
@@ -225,7 +203,7 @@ function executeConfigurations(job, configurationNames, _this, jobLog, deferred)
 				_.forOwn(configuration.exports, function(ex, key) {
 					switch(ex.type.toLowerCase()) {
 						case 'file': {
-							exportToFile(path.join(ex.destination, exportFileName), output);
+							helpers.exportToFile(path.join(ex.destination, exportFileName), output);
 							break;
 						}
 						default: {
@@ -235,9 +213,9 @@ function executeConfigurations(job, configurationNames, _this, jobLog, deferred)
 					}
 				});
 			});
-
-			// Done
-			executeConfigurations(job, configurationNames, _this, jobLog, deferred);
+		})
+		.then(function() {
+			deferred.resolve();
 		})
 		.catch(function(error) {
 			jobLog.error(error.stack);
@@ -245,17 +223,6 @@ function executeConfigurations(job, configurationNames, _this, jobLog, deferred)
 		});
 
 	return deferred.promise;
-}
-
-/**
- * Writes the content to a file
- * @param {string} exportPath - The path, including filename, where the data should be written
- * @param {string} content    - The content to write
- */
-function exportToFile(exportPath, content) {
-	mkdirp.sync(path.dirname(exportPath));
-	log.verbose('Writing output to ' + exportPath);
-	fs.writeFileSync(exportPath, content);
 }
 
 /**
@@ -289,73 +256,258 @@ function executeTemplate(templateString, data, defs) {
 	var template = dot.template(templateString, null, defs);
 
 	// Execute template
-	return template(defs);
+	return template(data ? data : defs);
 }
 
-/**
- * Executes API requests to get data
- * @private
- * @param {Object} query - The query configuration object
- *
- * @return {promise}
- */
-function getQueryData(configuration, _this) {
+function processExecutionPlan(configuration, _this, jobLog, configurationKeys, deferred) {
+	if (!deferred) {
+		deferred = Q.defer();
+		configurationKeys = _.keys(configuration.executionPlan);
+	}
+
+	if (configurationKeys.length === 0) {
+		jobLog.debug('Execution plan complete');
+		deferred.resolve();
+		return;
+	}
+	
+	try {
+		var key = configurationKeys.shift();
+		var task = configuration.executionPlan[key];
+
+		switch(task.type.toLowerCase()) {
+			case 'transform': {
+				// Execute transforms
+				executeTransform(task, null, _this, jobLog);
+
+				return processExecutionPlan(configuration, _this, jobLog, configurationKeys, deferred);
+			}
+			// Query types
+			case 'conversationaggregate':
+			case 'conversationdetail':
+			case 'useraggregate': {
+				processQuery(key, task, _this, jobLog)
+					.then(function() {
+						jobLog.debug('query done');
+						processExecutionPlan(configuration, _this, jobLog, configurationKeys, deferred);
+					});
+				break;
+			}
+	    	default: {
+	    		var err = 'Unknown task type: ' + task.type;
+	    		log.error(err);
+	    		deferred.reject(new Error(err));
+	    	}
+		}
+	} catch(error) {
+		jobLog.error(error.stack);
+		deferred.reject(error);
+	}
+
+	return deferred.promise;
+}
+
+function processQuery(queryName, query, _this, jobLog) {
 	var deferred = Q.defer();
 
-	//TODO: support a config parameter on a query to get X pages of data for the query
-	var queryData = {};
-	var keyCount = _.keys(configuration.queries).length;
-	_.forOwn(configuration.queries, function(query, key) {
+	jobLog.debug(query.strategy,  queryName + ' strategy: ');
+	try {
 	    switch(query.type.toLowerCase()) {
 	    	case 'conversationdetail': {
-	    		api.postConversationsDetailsQuery(JSON.stringify(query.query))
-	    			.then(function(data) {
-	    				queryData[key] = data;
-	    				if (_.keys(queryData).length == keyCount) {
-	    					deferred.resolve(queryData);
-	    				}
-	    			});
+	    		if (helpers.isType(query.strategy, 'string') && query.strategy.toLowerCase() == 'query') {
+	    			processQueriesObject(query, {}, _this, jobLog);
+		    		api.postConversationsDetailsQuery(JSON.stringify(query.query))
+		    			.then(function(data) {
+		    				_this.defs.data[queryName] = data;
+		    				deferred.resolve();
+		    			});
+	    		} else if (query.strategy.type && query.strategy.type.toLowerCase() == 'repeat') {
+	    			
+	    		} else {
+	    			jobLog.warning(query.strategy + 'Unknown query strategy: ');
+	    			deferred.reject('Unknown query strategy');
+	    		}
 	    		break;
 	    	}
 	    	case 'conversationaggregate': {
-	    		api.postConversationsAggregatesQuery(JSON.stringify(query.query))
-	    			.then(function(data) {
-	    				queryData[key] = data;
-	    				if (_.keys(queryData).length == keyCount) {
-	    					deferred.resolve(queryData);
-	    				}
-	    			});
+	    		if (helpers.isType(query.strategy, 'string') && query.strategy.toLowerCase() == 'query') {
+	    			processQueriesObject(query, {}, _this, jobLog);
+		    		api.postConversationsAggregatesQuery(JSON.stringify(query.query))
+		    			.then(function(data) {
+		    				_this.defs.data[queryName] = data;
+		    				deferred.resolve();
+		    			})
+						.catch(function(error) {
+							jobLog.error(error.stack);
+							deferred.reject(error);
+						});
+	    		} else if (query.strategy.type && query.strategy.type.toLowerCase() == 'repeat') {
+	    			
+	    		} else {
+	    			jobLog.warning(query.strategy + 'Unknown query strategy: ');
+	    			deferred.reject('Unknown query strategy');
+	    		}
+	    		break;
+	    	}
+	    	case 'useraggregate': {
+	    		if (helpers.isType(query.strategy, 'string') && query.strategy.toLowerCase() == 'query') {
+	    			processQueriesObject(query, {}, _this, jobLog);
+		    		api.postUsersAggregatesQuery(JSON.stringify(query.query))
+		    			.then(function(data) {
+		    				_this.defs.data[queryName] = data;
+		    				deferred.resolve();
+		    			});
+	    		} else if (query.strategy.type && query.strategy.type.toLowerCase() == 'repeat') {
+	    			repeatQuery('postUsersAggregatesQuery', query, _this, jobLog)
+	    				.then(function() {
+	    					jobLog.debug('repeatQuery done');
+	    					deferred.resolve();
+	    				});
+	    		} else {
+	    			jobLog.warning(query.strategy + 'Unknown query strategy: ');
+	    			deferred.reject('Unknown query strategy');
+	    		}
 	    		break;
 	    	}
 	    	default: {
 	    		var err = 'Unknown query type: ' + query.type;
 	    		log.error(err);
-	    		throw err;
+		    	deferred.reject(new Error(err));
 	    	}
-	    }
-	});
+		}
+	} catch(e) {
+		jobLog.error(e.stack);
+		deferred.reject(e);
+	}
 
 	return deferred.promise;
 }
 
-/**
- * Executes templates in all query objects and updates the query object with the template result
- * @private
- * @param {Object}              settings - The settings object
- * @param {TemplateDefinitions} defs     - The TemplateDefinitions object
- */
-function processQueries(queries, defs) {
-	log.verbose('Processing queries...');
-	_.forOwn(queries, function(query, queryName) {
-		/*
-		// Reset the vars for the definition
-		defs.initializeVars();
-		
-		// Set custom data from the query
-		defs.setVars(query.customData);
-		*/
-		// Process query
-		processQueriesObject(query, defs);
+function repeatQuery(apiFunctionName, query, _this, jobLog, collection, collectionStrings, deferred) {
+	if (!deferred) 
+		deferred = Q.defer();
+
+	// This must be the first time around, initialize
+	if (!collection) {
+		collectionStrings = query.strategy.collection.split('.');
+		collection = _this.defs;
+
+		// Validate
+		var first = collectionStrings.shift();
+		if (first.toLowerCase() != 'def') {
+			throw new Error('Collection definition must begin with the "def" object! Collection: ' + query.strategy.collection);
+		}
+	}
+
+	// Pop off next property
+	// TODO: This assumes no collections exist in the path. Have to update to iterate intermediate collections
+	var nextProp = collectionStrings.shift();
+	collection = collection[nextProp];
+
+	if (collectionStrings.length > 0) {
+		repeatQuery(apiFunctionName, query, _this, jobLog, collection, collectionStrings, deferred);
+		return deferred.promise;
+	}
+
+	// Once execution gets here, collection should be fully resolved and ready for iteration
+	iterateCollectionQuery(apiFunctionName, query, _this, jobLog, collection)
+		.then(function() {
+			deferred.resolve();
+		});
+
+	return deferred.promise;
+}
+
+function iterateCollectionQuery(apiFunctionName, query, _this, jobLog, collection, i, deferred) {
+	if (!deferred) 
+		deferred = Q.defer();
+	if (!i)
+		i=0;
+
+	// Done?
+	if (collection.length <= i) {
+		log.verbose('iterateCollectionQuery complete');
+		deferred.resolve();
+		return;
+	}
+
+	// Get value
+	var value = collection[i];
+
+	// Resolve templates in query
+	processQueriesObject(query, value, _this.defs, jobLog);
+
+	// Execute API call
+	api[apiFunctionName](query.query)
+		.then(function(queryData) {
+			// Initialize property as either this.defs or the contextual collection object
+			var property = value;
+			if (query.strategy.destination.toLowerCase().startsWith('def.')) {
+				property = _this.defs;
+				// Trim "defs." from the beginning
+				query.strategy.destination = query.strategy.destination.substring(4);
+			}
+
+			// Resolve the string and set the property with the query data
+			resolveAndSetProperty(query.strategy.destination, property, value, queryData, _this, jobLog);
+			
+			// Recursion!
+			i++;
+			iterateCollectionQuery(apiFunctionName, query, _this, jobLog, collection, i, deferred);
+		})
+		.catch(function(error) {
+			jobLog.error(error.stack);
+			deferred.reject(error);
+		});
+
+	return deferred.promise;
+}
+
+function resolveAndSetProperty(propertyStrings, property, templateData, propertyData, _this, jobLog) {
+	// This must be the first time around, initialize
+	if (!Array.isArray(propertyStrings)) {
+		propertyStrings = executeTemplate(propertyStrings, templateData, _this.defs);
+		propertyStrings = propertyStrings.split('.');
+	}
+
+	// If there's more than one left, recursively process
+	if (propertyStrings.length > 1) {
+		// Pop next property name
+		var propertyName = propertyStrings.shift();
+
+		// Make sure it's not null
+		if (!property[propertyName]) {
+			property[propertyName] = {};
+		}
+
+		// Set it
+		property = property[propertyName];
+
+		// Recursively execute
+		return resolveAndSetProperty(propertyStrings, property, templateData, propertyData, _this, jobLog);
+	}
+
+	// Last property part, set the value!
+	log.debug('setting ' + propertyStrings[0] + '=' + propertyData);
+	property[propertyStrings[0]] = propertyData;
+}
+
+function executeTransform(transform, data, _this, jobLog) {
+	_.forEach(transform.expressions, function(expression, key) {
+		jobLog.verbose('Executing transform: ' + expression);
+		executeTemplate(expression, data, _this.defs);
+	});
+}
+
+function processQueriesObject(query, data, _this, jobLog) {
+	// Process templates in query object
+	recurseQueriesObject(query.query, null, _this.defs);
+
+	// Execute transforms
+	_.forOwn(query.transforms, function(transform) {
+		_this.defs.vars.query = query.query;
+		executeTransform(transform, null, _this, jobLog);
+		_this.defs.vars.query = null;
 	});
 }
 
@@ -365,17 +517,17 @@ function processQueries(queries, defs) {
  * @param {Object}              obj  - The object to process
  * @param {TemplateDefinitions} defs - The TemplateDefinitions object
  */
-function processQueriesObject(obj, defs) {
+function recurseQueriesObject(obj, data, defs) {
 	_.forOwn(obj, function(value, property) {
 		var propertyType = typeof(value);
 		switch(propertyType){
 			case 'object':
 				// Recursively process objects
-				processQueriesObject(value, defs);
+				recurseQueriesObject(value, data, defs);
 				break;
 			case 'string':
 				// Execute doT template on strings
-				obj[property] = executeTemplate(value, {}, defs);
+				obj[property] = executeTemplate(value, data, defs);
 				break;
 		}
 	});
