@@ -1,6 +1,7 @@
 var purecloud = require('purecloud_api_sdk_javascript');
 var Q = require('q');
 var moment = require('moment');
+const _ = require('lodash');
 
 var config = require('./config');
 var Logger = require('./logger');
@@ -81,6 +82,40 @@ Api.prototype.postConversationsAggregatesQuery = function(query) {
 	return deferred.promise;
 };
 
+Api.prototype.postUsersAggregatesQuery = function(query, deferred, _this) {
+	if (!deferred) 
+		deferred = Q.defer();
+	if (!_this)
+		_this = this;
+
+	var startTime = new moment();
+	_this.analyticsApi.postUsersAggregatesQuery(query)
+		.then(function(result){
+			if (config.args.debugapi === true) 
+				log.verbose('Request "postUsersAggregatesQuery" completed in ' + moment().diff(startTime, new moment()) + ' ms');
+			deferred.resolve(result);
+		})
+		.catch(function(error){
+			log.debug(error.status, 'status: ');
+			try {
+				if (error.status != 429) {
+					log.error(error);
+					deferred.reject(error);
+					return;
+				}
+
+				var sleepMs = error.response.header['inin-ratelimit-reset']*1000;
+				log.warning('RATE LIMITED! Sleeping for ' + sleepMs + ' ms');
+				setTimeout(_this.postUsersAggregatesQuery.bind(query, deferred, _this), sleepMs);
+			} catch(e) {
+				log.error(e.stack);
+				deferred.reject(e);
+			}
+		});
+
+	return deferred.promise;
+};
+
 Api.prototype.getPermissions = function() {
 	var deferred = Q.defer();
 	var body = {};
@@ -98,5 +133,7 @@ Api.prototype.getPermissions = function() {
 
 	return deferred.promise;
 };
+
+
 
 module.exports = new Api();
