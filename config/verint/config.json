@@ -127,38 +127,38 @@
       "name": "verint_agent Scorecard Report Transform",
       "type": "transform",
       "expressions": [
-        "{{#def.aggregateVerintData(def.data)}}",
-        "{{#def.flattenAggregateData(def.data.verint_agent_scorecard_report_call_query, 'tAgentRoutingStatus_ALL|tTalk|tAcw|tHeld|tHandle|tAgentRoutingStatus_AUX_IN_TIME|tAgentRoutingStatus_COMMUNICATING|tAgentRoutingStatus_IDLE')}}"
+        "{{#def.verint.aggregateVerintData(def.data)}}",
+        "{{#def.dataOperations.flattenAggregateData(def.data.verint_agent_scorecard_report_call_query, 'tAgentRoutingStatus_ALL|tTalk|tAcw|tHeld|tHandle|tAgentRoutingStatus_AUX_IN_TIME|tAgentRoutingStatus_COMMUNICATING|tAgentRoutingStatus_IDLE')}}"
       ]
     },
     "verint_agent_scorecard_report_user_query_transform": {
       "name": "verint_agent_scorecard_report_user_query_transform",
       "type": "transform",
       "expressions": [
-        "{{#def.populateUserIdPredicates(def.data.verint_agent_scorecard_report_call_query.results, def.vars.query)}}"
+        "{{#def.verint.populateUserIdPredicates(def.data.verint_agent_scorecard_report_call_query.results, def.vars.query)}}"
       ]
     },
     "write_data": {
       "name": "write_data",
       "type": "transform",
       "expressions": [
-        "{{#def.writeData(def.data, '../local/data.json')}}"
+        "{{#def.dataOperations.writeData(def.data, '../local/data.json')}}"
       ]
     }
   },
   "templates": {
     "verint_agent_detail_template": {
       "name": "verint_agent detail template",
-      "template": "AGENT DETAIL REPORT\n{{#def.formatDate(def.vars.currentIntervalStart,'YYYY-MM-DDTHH:mm:ss.SSSZZ')}}\r\n{{~it.data.verint_agent_detail_query.results :result}}{{=result.group.queueId}}|{{=result.group.userId}}|{{=it.getMetric(result.data, 'tAnswered').stats.count}}|{{=it.getMetric(result.data, 'tTalk').stats.max}}|{{=it.getMetric(result.data, 'tAcw').stats.max}}\n{{~}}END AGENT DETAIL REPORT",
-      "fileName": "verint_agent_detail_template_{{#def.formatDate(def.vars.date,'YYYY_MM_DD_HH.mm.SSS')}}.txt",
+      "template": "AGENT DETAIL REPORT\n{{#def.datetimeOperations.formatDate(def.vars.currentIntervalStart,'YYYY-MM-DDTHH:mm:ss.SSSZZ')}}\r\n{{~it.data.verint_agent_detail_query.results :result}}{{=result.group.queueId}}|{{=result.group.userId}}|{{=it.getMetric(result.data, 'tAnswered').stats.count}}|{{=it.getMetric(result.data, 'tTalk').stats.max}}|{{=it.getMetric(result.data, 'tAcw').stats.max}}\n{{~}}END AGENT DETAIL REPORT",
+      "fileName": "verint_agent_detail_template_{{#def.datetimeOperations.formatDate(def.vars.date,'YYYY_MM_DD_HH.mm.SSS')}}.txt",
       "customData": {
         "templateData": "verint"
       }
     },
     "verint_agent_scorecard_report_template": {
       "name": "verint_agent Scorecard Report template",
-      "template": "Verint Report\nDate:{{#def.formatDate(def.vars.currentIntervalStart, 'MM/DD/YYYY')}}\nStart Time:{{#def.formatDate(def.vars.currentIntervalStart, 'HH:mm')}}\nEnd Time:{{#def.formatDate(def.addDuration(def.vars.currentIntervalStart, def.vars.interval), 'HH:mm')}}\n\nAGENT_ID DATE STAFF_TIME TALK_TIME ACW_TIME HOLD_TIME AUX_ALL_TIME AUX_IN_TIME AUX_OUT_TIME IDLE_TIME ACDCALLS\n\n{{~it.data.verint_agent_scorecard_report_call_query.results :result}}{{=result.group.userId}} {{=it.formatDate(it.parseInterval(result.flatData.c0.interval).start, 'YYYY-MM-DD')}} {{=result.flatData.c0.flatMetrics.tAgentRoutingStatus_ALL.stats.sum}} {{=result.flatData.c0.flatMetrics.tTalk.stats.sum}} {{=result.flatData.c0.flatMetrics.tAcw.stats.sum}} {{=result.flatData.c0.flatMetrics.tHeld.stats.sum}} {{=result.flatData.c0.flatMetrics.tHandle.stats.sum}} {{=result.flatData.c0.flatMetrics.tAgentRoutingStatus_AUX_IN_TIME.stats.sum}} {{=result.flatData.c0.flatMetrics.tAgentRoutingStatus_COMMUNICATING.stats.sum}} {{=result.flatData.c0.flatMetrics.tAgentRoutingStatus_IDLE.stats.sum}} {{=result.flatData.c0.flatMetrics.tHandle.stats.count}} \n{{~}}",
-      "fileName": "verint_agent_scorecard_report_{{#def.formatDate(def.vars.currentIntervalStart,'YYYY_MM_DD_HH.mm')}}.txt"
+      "template": "Verint Report\nDate:{{#def.datetimeOperations.formatDate(def.vars.currentIntervalStart, 'MM/DD/YYYY')}}\nStart Time:{{#def.datetimeOperations.formatDate(def.vars.currentIntervalStart, 'HH:mm')}}\nEnd Time:{{#def.datetimeOperations.formatDate(def.datetimeOperations.addDuration(def.vars.currentIntervalStart, def.vars.interval), 'HH:mm')}}\n\nAGENT_ID DATE STAFF_TIME TALK_TIME ACW_TIME HOLD_TIME AUX_ALL_TIME AUX_IN_TIME AUX_OUT_TIME IDLE_TIME ACDCALLS\n\n{{~it.data.verint_agent_scorecard_report_call_query.results :result}}{{=result.group.userId}} {{=it.datetimeOperations.formatDate(it.datetimeOperations.parseInterval(result.flatData.c0.interval).start, 'YYYY-MM-DD')}} {{=result.flatData.c0.flatMetrics.tAgentRoutingStatus_ALL.stats.sum}} {{=result.flatData.c0.flatMetrics.tTalk.stats.sum}} {{=result.flatData.c0.flatMetrics.tAcw.stats.sum}} {{=result.flatData.c0.flatMetrics.tHeld.stats.sum}} {{=result.flatData.c0.flatMetrics.tHandle.stats.sum}} {{=result.flatData.c0.flatMetrics.tAgentRoutingStatus_AUX_IN_TIME.stats.sum}} {{=result.flatData.c0.flatMetrics.tAgentRoutingStatus_COMMUNICATING.stats.sum}} {{=result.flatData.c0.flatMetrics.tAgentRoutingStatus_IDLE.stats.sum}} {{=result.flatData.c0.flatMetrics.tHandle.stats.count}} \n{{~}}",
+      "fileName": "verint_agent_scorecard_report_{{#def.datetimeOperations.formatDate(def.vars.currentIntervalStart,'YYYY_MM_DD_HH.mm')}}.txt"
     }
   },
   "exports": {
@@ -196,6 +196,9 @@
     },
     "verint_agent_scorecard_report_config": {
       "name": "AGENT DETAIL REPORT",
+      "externalModules": {
+        "verint": "./extensions/verint/verint.js"
+      },
       "executionPlan": {
         "verint_agent_scorecard_report_call_query": {
           "$ref": "#/queries/verint_agent_scorecard_report_call_query"

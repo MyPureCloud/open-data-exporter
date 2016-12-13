@@ -182,6 +182,12 @@ function executeConfigurations(job, configurationNames, _this, jobLog, deferred)
 	_this.defs.initializeVars();
 	_this.defs.setJobData({}, job, configuration);
 
+	// Load external modules
+	_.forOwn(configuration.externalModules, function(moduleVar, moduleName) {
+		jobLog.debug('Loading module to def.' + moduleName + ' from ' + moduleVar);
+		_this.defs[moduleName] = require(moduleVar);
+	});
+
 	// Process execution plan
 	jobLog.verbose('Processing execution plan for ' + configuration.name);
 	processExecutionPlan(configuration, _this, jobLog)

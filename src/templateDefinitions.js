@@ -1,4 +1,5 @@
 var fs = require('fs');
+var path = require('path');
 var moment = require('moment-timezone');
 var _ = require('lodash');
 
@@ -25,209 +26,6 @@ function TemplateDefinitions() {
 	this.initializeVars();
 }
 
-
-
-/**
- * Built-in functions for templates
- */
-
-/**
- * Loads a file into the template
- * @module  TemplateDefinitions
- * @instance
- * @function loadfile
- * @param {string} loadPath - The path to the file
- *
- * @return {string} The contents of the file
- */
-TemplateDefinitions.prototype.loadfile = function(loadPath) {
-	return fs.readFileSync(loadPath);
-};
-
-/**
- * Turns a JSON object into a string
- * @module  TemplateDefinitions
- * @instance
- * @function jsonStringify
- * @param {Object} data - The JSON object
- *
- * @return {string} The stringified JSON
- */
-TemplateDefinitions.prototype.jsonStringify = function(data) {
-	return JSON.stringify(data, null, 2);
-};
-
-/**
- * Formats a date according to the given format. Defaults to the ISO-8601 standard format
- * @module  TemplateDefinitions
- * @instance
- * @function formatDate
- * @param {long}   d      - The unix timestamp (milliseconds)
- * @param {string} format - The format to apply. See http://momentjs.com/docs/#/displaying/format/
- *
- * @return {string} The formatted string
- */
-TemplateDefinitions.prototype.formatDate = function(d, format) {
-	// Default to ISO-8601 format
-	if (!format) 
-		format = constants.strings.isoDateFormat;
-
-	// Parse the date to a moment object
-	// The date/moment object will be passed in as a string in the unix millisecond format (e.g. 1410715640579)
-	var m = new moment(d,'x');
-
-	// Return the formatted object
-	return m.format(format);
-};
-
-/**
- * Adds a duration to a date
- * @module  TemplateDefinitions
- * @instance
- * @function addDuration
- * @param {Moment} date     - The Moment object to use as a source (immutable)
- * @param {string} duration - 8601 formatted duration to add to the date
- */
-TemplateDefinitions.prototype.addDuration = function(date, duration) {
-	return date.clone().add(moment.duration(duration));
-};
-
-/**
- * Gets a metric object with the give metric name
- * @module  TemplateDefinitions
- * @instance
- * @function getMetric
- * @param {Object} data       - The API result data object containing the metrics
- * @param {string} metricName - The name of the metric to retrieve
- *
- * @return {Object} The metric object
- */
-TemplateDefinitions.prototype.getMetric = function(metrics, metricName) {
-	var m = null;
-	_.forEach(metrics, function(metric) {
-		if (m !== null) return;
-		if (metric.metric.toLowerCase() == metricName.toLowerCase()) {
-			m = metric;
-		}
-	});
-
-	return m;
-};
-
-/**
- * Counts the conversations from a conversation detail query
- * @module  TemplateDefinitions
- * @instance
- * @function countConversations
- * @param {Object} data - The data from a conversation detail query
- *
- * @return {int} The count of the conversations in the dataset
- */
-TemplateDefinitions.prototype.countConversations = function(data) {
-	return data.conversations.length;
-};
-
-/**
- * Counts the sessions and segments for each participant and adds the "sessionCount" property to the participant and the "segmentCount" property to each segment
- * @module  TemplateDefinitions
- * @instance
- * @function countSegments
- * @param {Object} data - The data from a conversation detail query
- */
-TemplateDefinitions.prototype.countSegments = function(data) {
-	_.forOwn(data.conversations, function(conversation) {
-		_.forOwn(conversation.participants, function(participant, key) {
-			participant.sessionCount = participant.sessions.length;
-			_.forOwn(participant.sessions, function(session, key) {
-				session.segmentCount = session.segments.length;
-			});
-		});
-	});
-};
-
-/**
- * Assigns conversation.customerParticipant, conversation.customerParticipant.ani, and conversation.queue for each conversation
- * @module  TemplateDefinitions
- * @instance
- * @function setCustomerParticipants
- * @param {Object} data - The data from a conversation detail query
- */
-TemplateDefinitions.prototype.setCustomerParticipants = function(data) {
-	_.forOwn(data.conversations, function(conversation) {
-		_.forOwn(conversation.participants, function(participant) {
-			if (participant.purpose == 'customer') {
-				conversation.customerParticipant = participant;
-				_.forOwn(conversation.customerParticipant.sessions, function(session) {
-					if (session.ani)
-						conversation.customerParticipant.ani = session.ani;
-				});
-			} else if (participant.purpose == 'acd') {
-				conversation.queue = participant;
-			}
-		});
-	});
-};
-
-TemplateDefinitions.prototype.dataArrayToProperty = function(response) {
-	_.forOwn(response.results, function(result) {
-		result.data = result.data[0];
-	});
-
-	log.debug(response);
-};
-
-TemplateDefinitions.prototype.flattenAggregateData = function(response, ensureStatNames) {
-	if (!ensureStatNames)
-		ensureStatNames = '';
-	var statNames = ensureStatNames.split('|');
-	_.forOwn(response.results, function(result) {
-		result.flatData = {};
-		_.forEach(result.data, function(data, i) {
-			key = 'c' + i;
-			result.flatData[key] = data;
-
-			// Set metric objects
-			result.flatData[key].flatMetrics = {};
-			_.forEach(result.flatData[key].metrics, function(metric) {
-				result.flatData[key].flatMetrics[metric.metric] = metric;
-
-				// Convert ms to seconds
-				if (result.flatData[key].flatMetrics[metric.metric].stats.max) {
-					result.flatData[key].flatMetrics[metric.metric].stats.max = (result.flatData[key].flatMetrics[metric.metric].stats.max / 1000).toFixed(0);
-				}
-				if (result.flatData[key].flatMetrics[metric.metric].stats.sum) {
-					result.flatData[key].flatMetrics[metric.metric].stats.sum = (result.flatData[key].flatMetrics[metric.metric].stats.sum / 1000).toFixed(0);
-				}
-			});
-
-			// Ensure metric objects exist
-			_.forEach(statNames, function(statName) {
-				if (!result.flatData[key].flatMetrics[statName])
-					result.flatData[key].flatMetrics[statName] = {
-						"metric": statName,
-						"stats": {
-							"max": 0,
-							"count": 0,
-							"sum": 0
-						}
-					};
-			});
-		});
-	});
-};
-
-TemplateDefinitions.prototype.parseInterval = function(interval) {
-	var intervals = interval.split('/');
-	return {
-		'start': new moment(intervals[0]),
-		'end': new moment(intervals[1])
-	};
-};
-
-TemplateDefinitions.prototype.writeData = function(data, path) {
-	fs.writeFileSync(path, JSON.stringify(data,null,2));
-};
-
 /**
  * Public functions for use in node.js code
  */
@@ -238,6 +36,22 @@ TemplateDefinitions.prototype.initializeVars = function() {
 	this.vars.date = this.now.clone();
 	// Initialize to 30 minute interval as default
 	this.vars.interval = 'PT30M';
+
+	var _this = this;
+	var rootPath = path.resolve('./extensions/standard');
+	if (fs.existsSync(rootPath)) {
+		_.forEach(fs.readdirSync(rootPath), function(file) {
+			if (file.endsWith('.js')) {
+				// Get just the name part
+				var name = file.substring(0, file.length - 3);
+
+				// Load the file
+				log.debug('Loading standard module "' + name + '" from ' + file);
+				var p = path.join(rootPath, file);
+				_this[name] = require(p);
+			}
+		});
+	}
 
 	generateDerivedVars(this);
 };
@@ -266,78 +80,6 @@ TemplateDefinitions.prototype.setJobData = function(data, job, configuration) {
 
 	// Regenerate derived vars
 	generateDerivedVars(this);
-};
-
-TemplateDefinitions.prototype.populateUserIdPredicates = function(data, query) {
-	_.forEach(data, function(userData) {
-		if (userData.group.userId) {
-			query.filter.predicates.push({
-				"type": "dimension",
-				"dimension": "userId",
-				"operator": "matches",
-				"value": userData.group.userId
-			});
-		}
-	});
-};
-
-TemplateDefinitions.prototype.aggregateVerintData = function(data) {
-	// Organize routing status data by user id
-	var routingData = {};
-	_.forEach(data.verint_agent_scorecard_report_user_query.results, function(result) {
-		routingData[result.group.userId] = result;
-
-		var tAgentRoutingStatus_ALL = 0;
-		var tAgentRoutingStatus_AUX_IN_TIME = 0;
-		var tAgentRoutingStatus_COMMUNICATING = 0;
-
-		// Iterate through metrics
-		_.forEach(result.data[0].metrics, function(metric) {
-			if (metric.metric == 'tAgentRoutingStatus') {
-				tAgentRoutingStatus_ALL += metric.stats.sum;
-				metric.metric = metric.metric + '_' + metric.qualifier;
-
-				if (metric.qualifier != 'IDLE') {
-					tAgentRoutingStatus_AUX_IN_TIME += metric.stats.sum;
-				}
-
-				if (metric.qualifier == 'COMMUNICATING') {
-					tAgentRoutingStatus_COMMUNICATING += metric.stats.sum;
-				}
-			}
-
-		});
-
-		// Add custom metrics
-		routingData[result.group.userId].data[0].metrics.push({
-			"metric": "tAgentRoutingStatus_COMMUNICATING",
-			"qualifier": "tAgentRoutingStatus_COMMUNICATING",
-			"stats": {
-				"sum": tAgentRoutingStatus_COMMUNICATING
-			}
-		});
-		routingData[result.group.userId].data[0].metrics.push({
-			"metric": "tAgentRoutingStatus_AUX_IN_TIME",
-			"qualifier": "tAgentRoutingStatus_AUX_IN_TIME",
-			"stats": {
-				"sum": tAgentRoutingStatus_AUX_IN_TIME
-			}
-		});
-		routingData[result.group.userId].data[0].metrics.push({
-			"metric": "tAgentRoutingStatus_ALL",
-			"qualifier": "ALL",
-			"stats": {
-				"sum": tAgentRoutingStatus_ALL
-			}
-		});
-	});
-
-	// Add routing data to conversation data
-	_.forEach(data.verint_agent_scorecard_report_call_query.results, function(result) {
-		_.forEach(routingData[result.group.userId].data[0].metrics, function(metric) {
-			result.data[0].metrics.push(metric);
-		});
-	});
 };
 
 
