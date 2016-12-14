@@ -8,7 +8,7 @@ function Verint() {
 Verint.prototype.populateUserIdPredicates = function(data, query) {
 	_.forEach(data, function(userData) {
 		if (userData.group.userId) {
-			query.filter.predicates.push({
+			query.query.filter.predicates.push({
 				"type": "dimension",
 				"dimension": "userId",
 				"operator": "matches",
@@ -77,4 +77,41 @@ Verint.prototype.aggregateVerintData = function(data) {
 	});
 };
 
+Verint.prototype.populateUserIds = function(data, query) {
+	query.parameters.id = [];
+	_.forEach(data.results, function(result) {
+		query.parameters.id.push(result.group.userId);
+	});
+};
+
+Verint.prototype.flattenUserData = function(data, def) {
+	def.data.users = {};
+	_.forEach(data.entities, function(user) {
+		def.data.users[user.id] = user;
+	});
+};
+
+Verint.prototype.getUserData = function(users, id){
+	return users[id];
+};
+
 module.exports = new Verint();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

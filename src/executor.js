@@ -281,6 +281,7 @@ function processExecutionPlan(configuration, _this, jobLog, configurationKeys, d
 		var key = configurationKeys.shift();
 		var task = configuration.executionPlan[key];
 
+		// Assume task is a query if it's not a transform. Add more cases here if additional task types are supported.
 		switch(task.type.toLowerCase()) {
 			case 'transform': {
 				// Execute transforms
@@ -288,10 +289,7 @@ function processExecutionPlan(configuration, _this, jobLog, configurationKeys, d
 
 				return processExecutionPlan(configuration, _this, jobLog, configurationKeys, deferred);
 			}
-			// Query types
-			case 'conversationaggregate':
-			case 'conversationdetail':
-			case 'useraggregate': {
+	    	default: {
 				processQuery(key, task, _this, jobLog)
 					.then(function() {
 						jobLog.debug('query done');
@@ -299,11 +297,6 @@ function processExecutionPlan(configuration, _this, jobLog, configurationKeys, d
 					});
 				break;
 			}
-	    	default: {
-	    		var err = 'Unknown task type: ' + task.type;
-	    		log.error(err);
-	    		deferred.reject(new Error(err));
-	    	}
 		}
 	} catch(error) {
 		jobLog.error(error.stack);
@@ -328,7 +321,7 @@ function processQuery(queryName, query, _this, jobLog) {
 		    				deferred.resolve();
 		    			});
 	    		} else if (query.strategy.type && query.strategy.type.toLowerCase() == 'repeat') {
-	    			
+	    			throw new Error('getUsers (repeat) is not implemented!');
 	    		} else {
 	    			jobLog.warning(query.strategy + 'Unknown query strategy: ');
 	    			deferred.reject('Unknown query strategy');
@@ -336,8 +329,8 @@ function processQuery(queryName, query, _this, jobLog) {
 	    		break;
 	    	}
 	    	case 'conversationaggregate': {
+	    		processQueriesObject(query, {}, _this, jobLog);
 	    		if (helpers.isType(query.strategy, 'string') && query.strategy.toLowerCase() == 'query') {
-	    			processQueriesObject(query, {}, _this, jobLog);
 		    		api.postConversationsAggregatesQuery(JSON.stringify(query.query))
 		    			.then(function(data) {
 		    				_this.defs.data[queryName] = data;
@@ -348,7 +341,7 @@ function processQuery(queryName, query, _this, jobLog) {
 							deferred.reject(error);
 						});
 	    		} else if (query.strategy.type && query.strategy.type.toLowerCase() == 'repeat') {
-	    			
+	    			throw new Error('getUsers (repeat) is not implemented!');
 	    		} else {
 	    			jobLog.warning(query.strategy + 'Unknown query strategy: ');
 	    			deferred.reject('Unknown query strategy');
@@ -356,8 +349,8 @@ function processQuery(queryName, query, _this, jobLog) {
 	    		break;
 	    	}
 	    	case 'useraggregate': {
+	    		processQueriesObject(query, {}, _this, jobLog);
 	    		if (helpers.isType(query.strategy, 'string') && query.strategy.toLowerCase() == 'query') {
-	    			processQueriesObject(query, {}, _this, jobLog);
 		    		api.postUsersAggregatesQuery(JSON.stringify(query.query))
 		    			.then(function(data) {
 		    				_this.defs.data[queryName] = data;
@@ -369,6 +362,32 @@ function processQuery(queryName, query, _this, jobLog) {
 	    					jobLog.debug('repeatQuery done');
 	    					deferred.resolve();
 	    				});
+	    		} else {
+	    			jobLog.warning(query.strategy + 'Unknown query strategy: ');
+	    			deferred.reject('Unknown query strategy');
+	    		}
+	    		break;
+	    	}
+	    	case 'getusers': {
+	    		processQueriesObject(query, {}, _this, jobLog);
+
+	    		// Get parameter values
+	    		var pageSize, pageNumber, id, sortOrder, expand;
+	    		if (query.parameters) {
+		    		pageSize = query.parameters.pageSize;
+		    		pageNumber = query.parameters.pageNumber;
+		    		id = query.parameters.id;
+		    		sortOrder = query.parameters.sortOrder;
+		    		expand = query.parameters.expand;
+		    	}
+	    		if (helpers.isType(query.strategy, 'string') && query.strategy.toLowerCase() == 'query') {
+		    		api.getUsers(pageSize, pageNumber, id, sortOrder, expand)
+		    			.then(function(data) {
+		    				_this.defs.data[queryName] = data;
+		    				deferred.resolve();
+		    			});
+	    		} else if (query.strategy.type && query.strategy.type.toLowerCase() == 'repeat') {
+	    			throw new Error('getUsers (repeat) is not implemented!');
 	    		} else {
 	    			jobLog.warning(query.strategy + 'Unknown query strategy: ');
 	    			deferred.reject('Unknown query strategy');
@@ -508,10 +527,11 @@ function executeTransform(transform, data, _this, jobLog) {
 function processQueriesObject(query, data, _this, jobLog) {
 	// Process templates in query object
 	recurseQueriesObject(query.query, null, _this.defs);
+	recurseQueriesObject(query.parameters, null, _this.defs);
 
 	// Execute transforms
 	_.forOwn(query.transforms, function(transform) {
-		_this.defs.vars.query = query.query;
+		_this.defs.vars.query = query;
 		executeTransform(transform, null, _this, jobLog);
 		_this.defs.vars.query = null;
 	});
