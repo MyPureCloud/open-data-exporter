@@ -100,7 +100,7 @@ Api.prototype.postUsersAggregatesQuery = function(query, deferred, _this) {
 			log.debug(error.status, 'status: ');
 			try {
 				if (retryOnError(error, 
-					_this.postUsersAggregatesQuery.bind(query, deferred, _this)))
+					function(){_this.postUsersAggregatesQuery(query, deferred, _this);}))
 					return;
 
 				log.error(error);
@@ -120,24 +120,12 @@ Api.prototype.getUsers = function(pageSize, pageNumber, id, sortOrder, expand, d
 	if (!_this)
 		_this = this;
 
-	/**** API LIMITATION/WORKAROUND ****
-	 * API requests are limited to ~7000 characters for the request URI. When sending a large collection of 
-	 * user IDs, this limit will be exceeded. 
-	 * 
-	 * [IGNORE THIS, SEE NEXT COMMENTS] To work around this issue, this code will only send 180 IDs at a time.
-	 * A guid is 36 chars + comma, so 180 * 37 = 6660, keeping it safely under the limit.
-	 *
-	 * API-2149 exists to add additional resources that will allow a true bulk get of users.
-	 * 
-	 * There seems to be a bug because nothing over 50 works. 51 ids either returns a 502, 
-	 * 504, or 400, but 50 ids always works. This has been reported as API-2150.
-	 ***********************************/
-
+	// This resource only accepts 100 user IDs at a time
 	var idList = '';
 	var idCount = 100;
 	var remainingIds = [];
 	if (Array.isArray(id)) {
-		if (id.length < 100) {
+		if (id.length < idCount) {
 			idCount = id.length;
 		}
 		idList = id.slice(0, idCount);
@@ -157,17 +145,16 @@ Api.prototype.getUsers = function(pageSize, pageNumber, id, sortOrder, expand, d
 			}
 
 			if (remainingIds.length > 0) {
-				log.debug('Executing getUsers again, ' + remainingIds.length + ' more IDs to retrieve...');
+				log.verbose('Executing getUsers again, ' + remainingIds.length + ' more IDs to retrieve...');
 				_this.getUsers(pageSize, pageNumber, remainingIds, sortOrder, expand, deferred, _this, results);
 			} else {
 				deferred.resolve(results);
 			}
 		})
 		.catch(function(error){
-			log.debug(error.status, 'status: ');
 			try {
 				if (retryOnError(error, 
-					_this.getUsers.bind(pageSize, pageNumber, id, sortOrder, expand, deferred, _this)))
+					function(){_this.getUsers(pageSize, pageNumber, id, sortOrder, expand, deferred, _this, results);}))
 					return;
 
 				log.error(error);
@@ -214,8 +201,8 @@ function retryOnError(error, retryFunction) {
 	// Anything falling to default will be considered unable to be retried
 	switch(error.status) {
 		case 429: {
-			// Get remaining seconds, convert to milliseconds, and add 1 for good measure
-			sleepMs = (error.response.header['inin-ratelimit-reset'] * 1000) + 1;
+			// Get remaining seconds, convert to milliseconds, and add 1 second for good measure
+			sleepMs = (error.response.header['inin-ratelimit-reset'] * 1000) + 1000;
 			log.warning('RATE LIMITED! Sleeping for ' + sleepMs + ' ms');
 			break;
 		}
