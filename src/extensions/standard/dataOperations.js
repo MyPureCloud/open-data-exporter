@@ -1,4 +1,6 @@
 var fs = require('fs');
+var path = require('path');
+var mkdirp = require('mkdirp');
 var _ = require('lodash');
 
 
@@ -93,8 +95,9 @@ DataOperations.prototype.jsonStringify = function(data) {
 	return JSON.stringify(data, null, 2);
 };
 
-DataOperations.prototype.writeData = function(data, path) {
-	fs.writeFileSync(path, JSON.stringify(data,null,2));
+DataOperations.prototype.writeData = function(data, destination) {
+	mkdirp.sync(path.dirname(destination));
+	fs.writeFileSync(destination, JSON.stringify(data,null,2));
 };
 
 

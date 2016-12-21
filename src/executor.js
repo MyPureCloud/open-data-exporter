@@ -281,7 +281,7 @@ function processExecutionPlan(configuration, _this, jobLog, configurationKeys, d
 		var key = configurationKeys.shift();
 		var task = configuration.executionPlan[key];
 
-		// Assume task is a query if it's not a transform. Add more cases here if additional task types are supported.
+		// Assume task is a request if it's not a transform. Add more cases here if additional task types are supported.
 		switch(task.type.toLowerCase()) {
 			case 'transform': {
 				// Execute transforms
@@ -290,9 +290,9 @@ function processExecutionPlan(configuration, _this, jobLog, configurationKeys, d
 				return processExecutionPlan(configuration, _this, jobLog, configurationKeys, deferred);
 			}
 	    	default: {
-				processQuery(key, task, _this, jobLog)
+				processRequest(key, task, _this, jobLog)
 					.then(function() {
-						jobLog.debug('query done');
+						jobLog.debug('request done');
 						processExecutionPlan(configuration, _this, jobLog, configurationKeys, deferred);
 					});
 				break;
@@ -306,96 +306,96 @@ function processExecutionPlan(configuration, _this, jobLog, configurationKeys, d
 	return deferred.promise;
 }
 
-function processQuery(queryName, query, _this, jobLog) {
+function processRequest(requestName, request, _this, jobLog) {
 	var deferred = Q.defer();
 
-	jobLog.debug(query.strategy,  queryName + ' strategy: ');
+	jobLog.debug(request.strategy,  requestName + ' strategy: ');
 	try {
-	    switch(query.type.toLowerCase()) {
+	    switch(request.type.toLowerCase()) {
 	    	case 'conversationdetail': {
-	    		if (helpers.isType(query.strategy, 'string') && query.strategy.toLowerCase() == 'query') {
-	    			processQueriesObject(query, {}, _this, jobLog);
-		    		api.postConversationsDetailsQuery(JSON.stringify(query.query))
+	    		if (request.strategy.toLowerCase() == 'single') {
+	    			processRequestObject(request, {}, _this, jobLog);
+		    		api.postConversationsDetailsQuery(JSON.stringify(request.body))
 		    			.then(function(data) {
-		    				_this.defs.data[queryName] = data;
+		    				_this.defs.data[requestName] = data;
 		    				deferred.resolve();
 		    			});
-	    		} else if (query.strategy.type && query.strategy.type.toLowerCase() == 'repeat') {
+	    		} else if (request.strategy.toLowerCase() =='repeat') {
 	    			throw new Error('getUsers (repeat) is not implemented!');
 	    		} else {
-	    			jobLog.warning(query.strategy + 'Unknown query strategy: ');
-	    			deferred.reject('Unknown query strategy');
+	    			jobLog.error(request.strategy, 'Unknown request strategy: ');
+	    			deferred.reject('Unknown request strategy');
 	    		}
 	    		break;
 	    	}
 	    	case 'conversationaggregate': {
-	    		processQueriesObject(query, {}, _this, jobLog);
-	    		if (helpers.isType(query.strategy, 'string') && query.strategy.toLowerCase() == 'query') {
-		    		api.postConversationsAggregatesQuery(JSON.stringify(query.query))
+	    		processRequestObject(request, {}, _this, jobLog);
+	    		if (request.strategy.toLowerCase() == 'single') {
+		    		api.postConversationsAggregatesQuery(JSON.stringify(request.body))
 		    			.then(function(data) {
-		    				_this.defs.data[queryName] = data;
+		    				_this.defs.data[requestName] = data;
 		    				deferred.resolve();
 		    			})
 						.catch(function(error) {
 							jobLog.error(error.stack);
 							deferred.reject(error);
 						});
-	    		} else if (query.strategy.type && query.strategy.type.toLowerCase() == 'repeat') {
+	    		} else if (request.strategy.toLowerCase() =='repeat') {
 	    			throw new Error('getUsers (repeat) is not implemented!');
 	    		} else {
-	    			jobLog.warning(query.strategy + 'Unknown query strategy: ');
-	    			deferred.reject('Unknown query strategy');
+	    			jobLog.error(request.strategy, 'Unknown request strategy: ');
+	    			deferred.reject('Unknown request strategy');
 	    		}
 	    		break;
 	    	}
 	    	case 'useraggregate': {
-	    		processQueriesObject(query, {}, _this, jobLog);
-	    		if (helpers.isType(query.strategy, 'string') && query.strategy.toLowerCase() == 'query') {
-		    		api.postUsersAggregatesQuery(JSON.stringify(query.query))
+	    		processRequestObject(request, {}, _this, jobLog);
+	    		if (request.strategy.toLowerCase() == 'single') {
+		    		api.postUsersAggregatesQuery(JSON.stringify(request.body))
 		    			.then(function(data) {
-		    				_this.defs.data[queryName] = data;
+		    				_this.defs.data[requestName] = data;
 		    				deferred.resolve();
 		    			});
-	    		} else if (query.strategy.type && query.strategy.type.toLowerCase() == 'repeat') {
-	    			repeatQuery('postUsersAggregatesQuery', query, _this, jobLog)
+	    		} else if (request.strategy.toLowerCase() == 'repeat') {
+	    			repeatRequest('postUsersAggregatesQuery', request, _this, jobLog)
 	    				.then(function() {
-	    					jobLog.debug('repeatQuery done');
+	    					jobLog.debug('repeatRequest done');
 	    					deferred.resolve();
 	    				});
 	    		} else {
-	    			jobLog.warning(query.strategy + 'Unknown query strategy: ');
-	    			deferred.reject('Unknown query strategy');
+	    			jobLog.error(request.strategy, 'Unknown request strategy: ');
+	    			deferred.reject('Unknown request strategy');
 	    		}
 	    		break;
 	    	}
 	    	case 'getusers': {
-	    		processQueriesObject(query, {}, _this, jobLog);
+	    		processRequestObject(request, {}, _this, jobLog);
 
 	    		// Get parameter values
 	    		var pageSize, pageNumber, id, sortOrder, expand;
-	    		if (query.parameters) {
-		    		pageSize = query.parameters.pageSize;
-		    		pageNumber = query.parameters.pageNumber;
-		    		id = query.parameters.id;
-		    		sortOrder = query.parameters.sortOrder;
-		    		expand = query.parameters.expand;
+	    		if (request.parameters) {
+		    		pageSize = request.parameters.pageSize;
+		    		pageNumber = request.parameters.pageNumber;
+		    		id = request.parameters.id;
+		    		sortOrder = request.parameters.sortOrder;
+		    		expand = request.parameters.expand;
 		    	}
-	    		if (helpers.isType(query.strategy, 'string') && query.strategy.toLowerCase() == 'query') {
+	    		if (request.strategy.toLowerCase() == 'single') {
 		    		api.getUsers(pageSize, pageNumber, id, sortOrder, expand)
 		    			.then(function(data) {
-		    				_this.defs.data[queryName] = data;
+		    				_this.defs.data[requestName] = data;
 		    				deferred.resolve();
 		    			});
-	    		} else if (query.strategy.type && query.strategy.type.toLowerCase() == 'repeat') {
+	    		} else if (request.strategy.toLowerCase() == 'repeat') {
 	    			throw new Error('getUsers (repeat) is not implemented!');
 	    		} else {
-	    			jobLog.warning(query.strategy + 'Unknown query strategy: ');
-	    			deferred.reject('Unknown query strategy');
+	    			jobLog.warning(request.strategy + 'Unknown request strategy: ');
+	    			deferred.reject('Unknown request strategy');
 	    		}
 	    		break;
 	    	}
 	    	default: {
-	    		var err = 'Unknown query type: ' + query.type;
+	    		var err = 'Unknown request type: ' + request.type;
 	    		log.error(err);
 		    	deferred.reject(new Error(err));
 	    	}
@@ -408,19 +408,21 @@ function processQuery(queryName, query, _this, jobLog) {
 	return deferred.promise;
 }
 
-function repeatQuery(apiFunctionName, query, _this, jobLog, collection, collectionStrings, deferred) {
+function repeatRequest(apiFunctionName, request, _this, jobLog, collection, collectionStrings, deferred) {
 	if (!deferred) 
 		deferred = Q.defer();
 
+	//TODO: fix repeating requests. use request.collection instead of request.strategy.collection
+
 	// This must be the first time around, initialize
 	if (!collection) {
-		collectionStrings = query.strategy.collection.split('.');
+		collectionStrings = request.strategy.collection.split('.');
 		collection = _this.defs;
 
 		// Validate
 		var first = collectionStrings.shift();
 		if (first.toLowerCase() != 'def') {
-			throw new Error('Collection definition must begin with the "def" object! Collection: ' + query.strategy.collection);
+			throw new Error('Collection definition must begin with the "def" object! Collection: ' + request.strategy.collection);
 		}
 	}
 
@@ -430,12 +432,12 @@ function repeatQuery(apiFunctionName, query, _this, jobLog, collection, collecti
 	collection = collection[nextProp];
 
 	if (collectionStrings.length > 0) {
-		repeatQuery(apiFunctionName, query, _this, jobLog, collection, collectionStrings, deferred);
+		repeatRequest(apiFunctionName, request, _this, jobLog, collection, collectionStrings, deferred);
 		return deferred.promise;
 	}
 
 	// Once execution gets here, collection should be fully resolved and ready for iteration
-	iterateCollectionQuery(apiFunctionName, query, _this, jobLog, collection)
+	iterateCollectionRequest(apiFunctionName, request, _this, jobLog, collection)
 		.then(function() {
 			deferred.resolve();
 		});
@@ -443,7 +445,7 @@ function repeatQuery(apiFunctionName, query, _this, jobLog, collection, collecti
 	return deferred.promise;
 }
 
-function iterateCollectionQuery(apiFunctionName, query, _this, jobLog, collection, i, deferred) {
+function iterateCollectionRequest(apiFunctionName, request, _this, jobLog, collection, i, deferred) {
 	if (!deferred) 
 		deferred = Q.defer();
 	if (!i)
@@ -451,7 +453,7 @@ function iterateCollectionQuery(apiFunctionName, query, _this, jobLog, collectio
 
 	// Done?
 	if (collection.length <= i) {
-		log.verbose('iterateCollectionQuery complete');
+		log.verbose('iterateCollectionRequest complete');
 		deferred.resolve();
 		return;
 	}
@@ -459,26 +461,29 @@ function iterateCollectionQuery(apiFunctionName, query, _this, jobLog, collectio
 	// Get value
 	var value = collection[i];
 
-	// Resolve templates in query
-	processQueriesObject(query, value, _this.defs, jobLog);
+	// Resolve templates in request
+	processRequestObject(request, value, _this.defs, jobLog);
 
 	// Execute API call
-	api[apiFunctionName](query.query)
-		.then(function(queryData) {
+	api[apiFunctionName](request.body)
+		.then(function(requestData) {
+
+			//TODO: Use request.target instead of request.strategy.destination
+
 			// Initialize property as either this.defs or the contextual collection object
 			var property = value;
-			if (query.strategy.destination.toLowerCase().startsWith('def.')) {
+			if (request.strategy.destination.toLowerCase().startsWith('def.')) {
 				property = _this.defs;
 				// Trim "defs." from the beginning
-				query.strategy.destination = query.strategy.destination.substring(4);
+				request.strategy.destination = request.strategy.destination.substring(4);
 			}
 
-			// Resolve the string and set the property with the query data
-			resolveAndSetProperty(query.strategy.destination, property, value, queryData, _this, jobLog);
+			// Resolve the string and set the property with the request data
+			resolveAndSetProperty(request.strategy.destination, property, value, requestData, _this, jobLog);
 			
 			// Recursion!
 			i++;
-			iterateCollectionQuery(apiFunctionName, query, _this, jobLog, collection, i, deferred);
+			iterateCollectionRequest(apiFunctionName, request, _this, jobLog, collection, i, deferred);
 		})
 		.catch(function(error) {
 			jobLog.error(error.stack);
@@ -524,32 +529,32 @@ function executeTransform(transform, data, _this, jobLog) {
 	});
 }
 
-function processQueriesObject(query, data, _this, jobLog) {
-	// Process templates in query object
-	recurseQueriesObject(query.query, null, _this.defs);
-	recurseQueriesObject(query.parameters, null, _this.defs);
+function processRequestObject(request, data, _this, jobLog) {
+	// Process templates in request object
+	recurseRequestObject(request.body, null, _this.defs);
+	recurseRequestObject(request.parameters, null, _this.defs);
 
 	// Execute transforms
-	_.forOwn(query.transforms, function(transform) {
-		_this.defs.vars.query = query;
+	_.forOwn(request.transforms, function(transform) {
+		_this.defs.vars.request = request;
 		executeTransform(transform, null, _this, jobLog);
-		_this.defs.vars.query = null;
+		_this.defs.vars.request = null;
 	});
 }
 
 /**
- * Recursively processes a query object
+ * Recursively processes a request object
  * @private
  * @param {Object}              obj  - The object to process
  * @param {TemplateDefinitions} defs - The TemplateDefinitions object
  */
-function recurseQueriesObject(obj, data, defs) {
+function recurseRequestObject(obj, data, defs) {
 	_.forOwn(obj, function(value, property) {
 		var propertyType = typeof(value);
 		switch(propertyType){
 			case 'object':
 				// Recursively process objects
-				recurseQueriesObject(value, data, defs);
+				recurseRequestObject(value, data, defs);
 				break;
 			case 'string':
 				// Execute doT template on strings

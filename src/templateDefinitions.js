@@ -73,8 +73,7 @@ TemplateDefinitions.prototype.setJobData = function(data, job, configuration) {
 	setCustomData(this.vars, config.settings.customData);
 	setCustomData(this.vars, job.customData);
 	setCustomData(this.vars, configuration.customData);
-	setCustomDataFromObjects(this.vars, configuration.queries);
-	setCustomDataFromObjects(this.vars, configuration.transforms);
+	setCustomDataFromObjects(this.vars, configuration.executionPlan);
 	setCustomDataFromObjects(this.vars, configuration.templates);
 	setCustomDataFromObjects(this.vars, configuration.exports);
 

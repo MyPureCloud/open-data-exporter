@@ -13,10 +13,11 @@ var log = new Logger('api');
 
 function Api() {
 	this.pureCloudSession = purecloud.PureCloudSession({
+		environment: config.settings.pureCloud.environment || 'mypurecloud.com',
 		strategy: 'client-credentials',
 		clientId: config.settings.pureCloud.clientId,
 		clientSecret: config.settings.pureCloud.clientSecret,
-		timeout: config.settings.pureCloud.timeout
+		timeout: config.settings.pureCloud.timeout || 5000
 	});
 
 	// Instantiate APIs

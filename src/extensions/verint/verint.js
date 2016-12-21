@@ -5,10 +5,10 @@ function Verint() {
 
 }
 
-Verint.prototype.populateUserIdPredicates = function(data, query) {
+Verint.prototype.populateUserIdPredicates = function(data, request) {
 	_.forEach(data, function(userData) {
 		if (userData.group.userId) {
-			query.query.filter.predicates.push({
+			request.body.filter.predicates.push({
 				"type": "dimension",
 				"dimension": "userId",
 				"operator": "matches",
@@ -77,10 +77,10 @@ Verint.prototype.aggregateVerintData = function(data) {
 	});
 };
 
-Verint.prototype.populateUserIds = function(data, query) {
-	query.parameters.id = [];
+Verint.prototype.populateUserIds = function(data, request) {
+	request.parameters.id = [];
 	_.forEach(data.results, function(result) {
-		query.parameters.id.push(result.group.userId);
+		request.parameters.id.push(result.group.userId);
 	});
 };
 
