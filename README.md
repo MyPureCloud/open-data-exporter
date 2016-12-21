@@ -28,3 +28,4 @@ Configuration files can be found in [src/config](https://github.com/MyPureCloud/
 # Planned features
 
 * Scheduling with cron
+* Finishing the documentation
