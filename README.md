@@ -4,7 +4,7 @@ The Open Data Exporter is a configurable node.js service that executes PureCloud
 
 # Documentation
 
-Full documentation is [in the reopo's wiki](/MyPureCloud/open-data-exporter/wiki).
+Full documentation is [in the reopo's wiki](https://github.com/MyPureCloud/open-data-exporter/wiki).
 
 # TLDR;
 
