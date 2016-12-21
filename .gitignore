@@ -40,4 +40,4 @@ jspm_packages
 # PROJECT RULES
 local
 src/out
-config/*/output
+src/config/*/output
