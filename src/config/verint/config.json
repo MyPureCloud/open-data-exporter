@@ -2,9 +2,10 @@
   "pureCloud": {
     "clientId": "",
     "clientSecret": "",
-    "timeout": 10000
+    "timeout": 10000,
+    "environment": "mypurecloud.com"
   },
-  "queries": {
+  "requests": {
     "verint_agent_detail_query": {
       "name": "verint_agent Detail Query",
       "type": "conversationAggregate",
@@ -200,7 +201,7 @@
       "name": "AGENT DETAIL REPORT",
       "queries": {
         "verint_agent_detail_query": {
-          "$ref": "#/queries/verint_agent_detail_query"
+          "$ref": "#/requests/verint_agent_detail_query"
         }
       },
       "transforms": {
@@ -227,16 +228,16 @@
       },
       "executionPlan": {
         "verint_agent_scorecard_report_call_query": {
-          "$ref": "#/queries/verint_agent_scorecard_report_call_query"
+          "$ref": "#/requests/verint_agent_scorecard_report_call_query"
         },
         "verint_agent_scorecard_report_user_query": {
-          "$ref": "#/queries/verint_agent_scorecard_report_user_query"
+          "$ref": "#/requests/verint_agent_scorecard_report_user_query"
         },
         "verint_agent_scorecard_report_transform": {
           "$ref": "#/transforms/verint_agent_scorecard_report_transform"
         },
         "verint_agent_scorecard_report_user_resolution_query": {
-          "$ref": "#/queries/verint_agent_scorecard_report_user_resolution_query"
+          "$ref": "#/requests/verint_agent_scorecard_report_user_resolution_query"
         },
         "verint_agent_scorecard_report_flatten_user_resolution_query_data_transform": {
           "$ref": "#/transforms/verint_agent_scorecard_report_flatten_user_resolution_query_data_transform"
