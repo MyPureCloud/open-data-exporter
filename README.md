@@ -14,7 +14,10 @@ Full documentation is [in the reopo's wiki](https://github.com/MyPureCloud/open-
 # Features
 
 * Robust templating support powered by [doT](http://olado.github.io/doT/)
-* 
+* Make PureCloud Platform API requests without writing any code
+* All post-processing data calculations are fully configurable and programmable
+* Ability to execute multiple queries and multiple transformations and use the resulting data in one or more templates
+* Write output to dynamically determined locations and files
 
 ## Included Configurations
 
