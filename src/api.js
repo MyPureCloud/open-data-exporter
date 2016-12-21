@@ -48,30 +48,61 @@ Api.prototype.login = function() {
 	return deferred.promise;
 };
 
-Api.prototype.postConversationsDetailsQuery = function(query) {
-	var deferred = Q.defer();
-	var body = {};
+Api.prototype.postConversationsDetailsQuery = function(request, _this, deferred, results) {
+	if (!deferred) 
+		deferred = Q.defer();
+	if (!_this)
+		_this = this;
+
+	if (!request.body.paging) request.body.paging = {'pageSize':100,'pageNumber':1};
+	if (!request.body.paging.pageSize || request.body.paging.pageSize > 100) request.body.paging.pageSize = 100;
+	if (!request.body.paging.pageNumber) request.body.paging.pageNumber = 1;
 
 	var startTime = new moment();
-	this.analyticsApi.postConversationsDetailsQuery(query)
+	_this.analyticsApi.postConversationsDetailsQuery(JSON.stringify(request.body))
 		.then(function(result){
 			if (config.args.debugapi === true) 
 				log.verbose('Request "postConversationsDetailsQuery" completed in ' + moment().diff(startTime, new moment()) + ' ms');
-			deferred.resolve(result);
+
+			if (!results) {
+				results = result;
+			} else {
+				if (result.conversations)
+					results.conversations = results.conversations.concat(result.conversations);
+			}
+
+			if (request.getAllPages === true && result.conversations) {
+				request.body.paging.pageNumber++;
+				log.verbose('Getting more data from postConversationsDetailsQuery page ' + request.body.paging.pageNumber + ' (current conversation count: ' + results.conversations.length + ')');
+				_this.postConversationsDetailsQuery(request, _this, deferred, results);
+			} else {
+				deferred.resolve(results);
+			}
 		})
 		.catch(function(error){
-			deferred.reject(error);
+			log.debug(error.status, 'status: ');
+			try {
+				if (retryOnError(error, 
+					function(){_this.postConversationsDetailsQuery(request, _this, deferred, results);}))
+					return;
+
+				log.error(error);
+				deferred.reject(error);
+			} catch(e) {
+				log.error(e.stack);
+				deferred.reject(e);
+			}
 		});
 
 	return deferred.promise;
 };
 
-Api.prototype.postConversationsAggregatesQuery = function(query) {
+Api.prototype.postConversationsAggregatesQuery = function(request) {
 	var deferred = Q.defer();
 	var body = {};
 
 	var startTime = new moment();
-	this.analyticsApi.postConversationsAggregatesQuery(query)
+	this.analyticsApi.postConversationsAggregatesQuery(JSON.stringify(request.body))
 		.then(function(result){
 			if (config.args.debugapi === true) 
 				log.verbose('Request "postConversationsAggregatesQuery" completed in ' + moment().diff(startTime, new moment()) + ' ms');
@@ -84,14 +115,14 @@ Api.prototype.postConversationsAggregatesQuery = function(query) {
 	return deferred.promise;
 };
 
-Api.prototype.postUsersAggregatesQuery = function(query, deferred, _this) {
+Api.prototype.postUsersAggregatesQuery = function(request, deferred, _this) {
 	if (!deferred) 
 		deferred = Q.defer();
 	if (!_this)
 		_this = this;
 
 	var startTime = new moment();
-	_this.analyticsApi.postUsersAggregatesQuery(query)
+	_this.analyticsApi.postUsersAggregatesQuery(JSON.stringify(request.body))
 		.then(function(result){
 			if (config.args.debugapi === true) 
 				log.verbose('Request "postUsersAggregatesQuery" completed in ' + moment().diff(startTime, new moment()) + ' ms');
@@ -101,7 +132,7 @@ Api.prototype.postUsersAggregatesQuery = function(query, deferred, _this) {
 			log.debug(error.status, 'status: ');
 			try {
 				if (retryOnError(error, 
-					function(){_this.postUsersAggregatesQuery(query, deferred, _this);}))
+					function(){_this.postUsersAggregatesQuery(request, deferred, _this);}))
 					return;
 
 				log.error(error);
