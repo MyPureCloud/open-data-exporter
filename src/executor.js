@@ -315,7 +315,7 @@ function processRequest(requestName, request, _this, jobLog) {
 	    	case 'conversationdetail': {
 	    		if (request.strategy.toLowerCase() == 'single') {
 	    			processRequestObject(request, {}, _this, jobLog);
-		    		api.postConversationsDetailsQuery(JSON.stringify(request.body))
+		    		api.postConversationsDetailsQuery(request)
 		    			.then(function(data) {
 		    				_this.defs.data[requestName] = data;
 		    				deferred.resolve();
@@ -331,7 +331,7 @@ function processRequest(requestName, request, _this, jobLog) {
 	    	case 'conversationaggregate': {
 	    		processRequestObject(request, {}, _this, jobLog);
 	    		if (request.strategy.toLowerCase() == 'single') {
-		    		api.postConversationsAggregatesQuery(JSON.stringify(request.body))
+		    		api.postConversationsAggregatesQuery(request)
 		    			.then(function(data) {
 		    				_this.defs.data[requestName] = data;
 		    				deferred.resolve();
@@ -351,7 +351,7 @@ function processRequest(requestName, request, _this, jobLog) {
 	    	case 'useraggregate': {
 	    		processRequestObject(request, {}, _this, jobLog);
 	    		if (request.strategy.toLowerCase() == 'single') {
-		    		api.postUsersAggregatesQuery(JSON.stringify(request.body))
+		    		api.postUsersAggregatesQuery(request)
 		    			.then(function(data) {
 		    				_this.defs.data[requestName] = data;
 		    				deferred.resolve();

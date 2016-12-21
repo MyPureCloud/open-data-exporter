@@ -9,13 +9,13 @@
       "name": "abandons request",
       "type": "conversationDetail",
       "strategy": "single",
+      "getAllPages": true,
       "body": {
-        "interval": "2016-07-28T01:21:36.000Z/2016-08-03T01:21:36.000Z",
+        "interval": "{{#def.vars.currentInterval}}",
         "order": "asc",
         "orderBy": "conversationStart",
         "paging": {
-          "pageSize": 100,
-          "pageNumber": 1
+          "pageSize": 100
         },
         "segmentFilters": [
           {
@@ -67,7 +67,7 @@
   "templates": {
     "abandons_template": {
       "name": "Abandons template",
-      "template": "ABANDONED CONVERSATIONS\nRun date: {{#def.vars.date}}\nCompany: {{#def.vars.company}}\nInterval: {{#def.vars.previousInterval}}\nJob: {{#def.job.name}}\nConfiguration: {{#def.configuration.name}}\nConversation ID|Queue|Customer Name|ANI\n{{~it.data.abandons_request.conversations :conversation}}{{=conversation.conversationId}}|{{=conversation.queue.participantName}}|{{=conversation.customerParticipant.participantName}}|{{=conversation.customerParticipant.ani}}\n{{~}}",
+      "template": "ABANDONED CONVERSATIONS\nRun date: {{#def.vars.date}}\nCompany: {{#def.vars.company}}\nInterval: {{#def.vars.currentInterval}}\nJob: {{#def.job.name}}\nConfiguration: {{#def.configuration.name}}\nConversation ID|Queue|Customer Name|ANI\n{{~it.data.abandons_request.conversations :conversation}}{{=conversation.conversationId}}|{{=conversation.queue.participantName}}|{{=conversation.customerParticipant.participantName}}|{{=conversation.customerParticipant.ani}}\n{{~}}",
       "fileName": "abandons_{{#def.datetimeOperations.formatDate(def.vars.date,'YYYY_MM_DD_HH.mm.SSS')}}.txt"
     }
   },
@@ -104,6 +104,9 @@
         "abandons_export": {
           "$ref": "#/exports/abandons_export"
         }
+      },
+      "customData": {
+        "interval": "PT2H"
       }
     }
   },

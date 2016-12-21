@@ -28,10 +28,10 @@ Examples.prototype.countConversations = function(data) {
  * @param {Object} data - The data from a conversation detail query
  */
 Examples.prototype.countSegments = function(data) {
-	_.forOwn(data.conversations, function(conversation) {
-		_.forOwn(conversation.participants, function(participant, key) {
+	_.forEach(data.conversations, function(conversation) {
+		_.forEach(conversation.participants, function(participant, key) {
 			participant.sessionCount = participant.sessions.length;
-			_.forOwn(participant.sessions, function(session, key) {
+			_.forEach(participant.sessions, function(session, key) {
 				session.segmentCount = session.segments.length;
 			});
 		});
@@ -46,11 +46,11 @@ Examples.prototype.countSegments = function(data) {
  * @param {Object} data - The data from a conversation detail query
  */
 Examples.prototype.setCustomerParticipants = function(data) {
-	_.forOwn(data.conversations, function(conversation) {
-		_.forOwn(conversation.participants, function(participant) {
+	_.forEach(data.conversations, function(conversation) {
+		_.forEach(conversation.participants, function(participant) {
 			if (participant.purpose == 'customer') {
 				conversation.customerParticipant = participant;
-				_.forOwn(conversation.customerParticipant.sessions, function(session) {
+				_.forEach(conversation.customerParticipant.sessions, function(session) {
 					if (session.ani)
 						conversation.customerParticipant.ani = session.ani;
 				});
