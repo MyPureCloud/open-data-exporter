@@ -1,0 +1,125 @@
+{
+  "pureCloud": {
+    "clientId": "",
+    "clientSecret": "",
+    "timeout": 10000
+  },
+  "requests": {
+    "abandons_request": {
+      "name": "abandons request",
+      "type": "conversationDetail",
+      "strategy": "single",
+      "body": {
+        "interval": "2016-07-28T01:21:36.000Z/2016-08-03T01:21:36.000Z",
+        "order": "asc",
+        "orderBy": "conversationStart",
+        "paging": {
+          "pageSize": 100,
+          "pageNumber": 1
+        },
+        "segmentFilters": [
+          {
+            "type": "and",
+            "clauses": [
+              {
+                "type": "and",
+                "predicates": [
+                  {
+                    "type": "dimension",
+                    "dimension": "disconnectType",
+                    "operator": "matches",
+                    "value": "peer"
+                  },
+                  {
+                    "type": "dimension",
+                    "dimension": "purpose",
+                    "operator": "matches",
+                    "value": "acd"
+                  }
+                ]
+              },
+              {
+                "type": "and",
+                "predicates": [
+                  {
+                    "type": "dimension",
+                    "dimension": "mediaType",
+                    "operator": "matches",
+                    "value": "voice"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "transforms": {
+    "abandons_transform": {
+      "name": "Abandons transform",
+      "type": "transform",
+      "expressions": [
+        "{{#def.examples.setCustomerParticipants(def.data.abandons_request)}}"
+      ]
+    }
+  },
+  "templates": {
+    "abandons_template": {
+      "name": "Abandons template",
+      "template": "ABANDONED CONVERSATIONS\nRun date: {{#def.vars.date}}\nCompany: {{#def.vars.company}}\nInterval: {{#def.vars.previousInterval}}\nJob: {{#def.job.name}}\nConfiguration: {{#def.configuration.name}}\nConversation ID|Queue|Customer Name|ANI\n{{~it.data.abandons_request.conversations :conversation}}{{=conversation.conversationId}}|{{=conversation.queue.participantName}}|{{=conversation.customerParticipant.participantName}}|{{=conversation.customerParticipant.ani}}\n{{~}}",
+      "fileName": "abandons_{{#def.datetimeOperations.formatDate(def.vars.date,'YYYY_MM_DD_HH.mm.SSS')}}.txt"
+    }
+  },
+  "exports": {
+    "abandons_export": {
+      "name": "Conversation detail file export",
+      "type": "file",
+      "destination": "../local/examples/",
+      "customData": {
+        "exportData": "My export data"
+      }
+    }
+  },
+  "configurations": {
+    "abandons_config": {
+      "name": "Abandons Configuration",
+      "externalModules": {
+        "examples": "./extensions/examples/examples.js"
+      },
+      "executionPlan": {
+        "abandons_request": {
+          "$ref": "#/requests/abandons_request"
+        },
+        "abandons_transform": {
+          "$ref": "#/transforms/abandons_transform"
+        }
+      },
+      "templates": {
+        "abandons_template": {
+          "$ref": "#/templates/abandons_template"
+        }
+      },
+      "exports": {
+        "abandons_export": {
+          "$ref": "#/exports/abandons_export"
+        }
+      }
+    }
+  },
+  "jobs": {
+    "abandons_job": {
+      "name": "Abandons job",
+      "configurations": {
+        "abandons_config": {
+          "$ref": "#/configurations/abandons_config"
+        }
+      },
+      "cron": "10,40 * * * * *",
+      "customData": {}
+    }
+  },
+  "customData": {
+    "company": "Genesys"
+  }
+}
