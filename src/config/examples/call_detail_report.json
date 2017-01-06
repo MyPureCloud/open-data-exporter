@@ -1,0 +1,115 @@
+{
+  "pureCloud": {
+    "clientId": "",
+    "clientSecret": "",
+    "timeout": 10000
+  },
+  "requests": {
+    "cdr_request": {
+      "name": "calls request",
+      "type": "conversationDetail",
+      "strategy": "single",
+      "getAllPages": true,
+      "body": {
+        "interval": "{{#def.vars.currentInterval}}",
+        "order": "asc",
+        "orderBy": "conversationStart",
+        "paging": {
+          "pageSize": 100,
+          "pageNumber": 1
+        },
+        "segmentFilters": [
+          {
+            "type": "or",
+            "clauses": [
+              {
+                "type": "and",
+                "predicates": [
+                  {
+                    "type": "dimension",
+                    "dimension": "purpose",
+                    "operator": "matches",
+                    "value": "acd"
+                  },
+                  {
+                    "type": "dimension",
+                    "dimension": "mediaType",
+                    "operator": "matches",
+                    "value": "voice"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "transforms": {
+    "cdr_segment_data_transform": {
+      "name": "CDR Segment Data transform",
+      "type": "transform",
+      "expressions": [
+        "{{#def.cdr_module.addSegmentsToParticipant(def.data.cdr_request)}}"
+      ]
+    }
+  },
+  "templates": {
+    "cdr_template": {
+      "name": "CDR template",
+      "templateFile": "./config/examples/cdr_template.html",
+      "fileName": "cdr_{{#def.datetimeOperations.formatDate(def.vars.date,'YYYY_MM_DD_HH.mm.SSS')}}.html"
+    }
+  },
+  "exports": {
+    "cdr_export": {
+      "name": "CDR file export",
+      "type": "file",
+      "destination": "../local/cdr/"
+    }
+  },
+  "configurations": {
+    "cdr_config": {
+      "name": "CDR Configuration",
+      "externalModules": {
+        "cdr_module": "./extensions/examples/cdr.js"
+      },
+      "executionPlan": {
+        "cdr_request": {
+          "$ref": "#/requests/cdr_request"
+        },
+        "cdr_segment_data_transform": {
+          "$ref": "#/transforms/cdr_segment_data_transform"
+        }
+      },
+      "templates": {
+        "cdr_template": {
+          "$ref": "#/templates/cdr_template"
+        }
+      },
+      "exports": {
+        "cdr_export": {
+          "$ref": "#/exports/cdr_export"
+        }
+      },
+      "customData": {
+        "interval": "PT10M"
+      }
+    }
+  },
+  "jobs": {
+    "cdr_job": {
+      "name": "CDR job",
+      "configurations": {
+        "cdr_config": {
+          "$ref": "#/configurations/cdr_config"
+        }
+      },
+      "cron": "10,40 * * * * *",
+      "customData": {}
+    }
+  },
+  "customData": {
+    "company": "Genesys"
+  }
+}
