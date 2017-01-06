@@ -197,7 +197,15 @@ function executeConfigurations(job, configurationNames, _this, jobLog, deferred)
 			jobLog.verbose('Executing templates...');
 			_.forOwn(configuration.templates, function(template, key) {
 				jobLog.verbose('Executing template: ' + template.name);
-				var output = executeTemplate(template.template, null, _this.defs);
+
+				// Load from file?
+				var templateBody = template.template;
+				if (template.templateFile && !template.template) {
+					log.verbose(template.templateFile, 'Loading template from ');
+					templateBody = fs.readFileSync(template.templateFile);
+				}
+
+				var output = executeTemplate(templateBody, null, _this.defs);
 
 				if (config.args.showoutput === true) {
 					jobLog.info(output, template.name + ':\n');
