@@ -1,3 +1,7 @@
+// Force working directory to be where this script resides
+// The purpose of this is for relative paths loaded in configs to be relative to the script, not where it was invoked from
+process.chdir(__dirname);
+
 var Q = require('q');
 var moment = require('moment');
 var colors = require('colors/safe');
