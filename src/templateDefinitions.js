@@ -38,7 +38,7 @@ TemplateDefinitions.prototype.initializeVars = function() {
 	this.vars.interval = 'PT30M';
 
 	var _this = this;
-	var rootPath = path.resolve('./extensions/standard');
+	var rootPath = path.join(__dirname, 'extensions/standard');
 	if (fs.existsSync(rootPath)) {
 		_.forEach(fs.readdirSync(rootPath), function(file) {
 			if (file.endsWith('.js')) {
