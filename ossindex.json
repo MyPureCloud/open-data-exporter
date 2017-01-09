@@ -1,0 +1,19 @@
+
+{
+  "author": "ININ Developer Evangelists",
+  "title": "Open Data Exporter",
+  "categories": [
+    "applications"
+  ],
+  "tags": [
+    "example",
+    "analytics",
+    "reporting"
+  ],
+  "apis": [
+    "platform"
+  ],
+  "sdks": [
+    "JavaScript"
+  ]
+}
