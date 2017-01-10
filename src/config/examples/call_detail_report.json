@@ -79,20 +79,13 @@
       "expressions": [
         "{{#def.cdr_module.ensureAttributes(def.data.cdr_request)}}"
       ]
-    },
-    "write_data": {
-      "name": "Writes out the data",
-      "type": "transform",
-      "expressions": [
-        "{{#def.dataOperations.writeData(def.data, '../local/conversation_detail/data.json')}}"
-      ]
     }
   },
   "templates": {
     "cdr_template": {
       "name": "CDR template",
       "templateFile": "./config/examples/cdr_template.html",
-      "fileName": "cdr_DEBUG.html"
+      "fileName": "cdr_{{#def.datetimeOperations.formatDate(def.vars.date,'YYYY_MM_DD_HH.mm.SSS')}}.html"
     }
   },
   "exports": {
@@ -126,9 +119,6 @@
         },
         "cdr_ensure_attributes_transform": {
           "$ref": "#/transforms/cdr_ensure_attributes_transform"
-        },
-        "write_data": {
-          "$ref": "#/transforms/write_data"
         }
       },
       "templates": {
