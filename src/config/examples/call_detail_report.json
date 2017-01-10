@@ -43,6 +43,12 @@
           }
         ]
       }
+    },
+    "cdr_conversation_details_request": {
+      "name": "Conversation details request",
+      "type": "getConversation",
+      "strategy": "repeat",
+      "collection": "def.vars.conversationIds"
     }
   },
   "transforms": {
@@ -52,13 +58,41 @@
       "expressions": [
         "{{#def.cdr_module.addSegmentsToParticipant(def.data.cdr_request)}}"
       ]
+    },
+    "cdr_coalesce_conversation_ids_transform": {
+      "name": "CDR coalesce conversation IDs",
+      "type": "transform",
+      "expressions": [
+        "{{#def.vars.conversationIds=def.cdr_module.coalesceConversationIds(def.data.cdr_request)}}"
+      ]
+    },
+    "cdr_aggregate_participant_attributes_transform": {
+      "name": "CDR aggregate participant attributes",
+      "type": "transform",
+      "expressions": [
+        "{{#def.cdr_module.aggregateParticipantAttributes(def.data)}}"
+      ]
+    },
+    "cdr_ensure_attributes_transform": {
+      "name": "CDR ensure attributes",
+      "type": "transform",
+      "expressions": [
+        "{{#def.cdr_module.ensureAttributes(def.data.cdr_request)}}"
+      ]
+    },
+    "write_data": {
+      "name": "Writes out the data",
+      "type": "transform",
+      "expressions": [
+        "{{#def.dataOperations.writeData(def.data, '../local/conversation_detail/data.json')}}"
+      ]
     }
   },
   "templates": {
     "cdr_template": {
       "name": "CDR template",
       "templateFile": "./config/examples/cdr_template.html",
-      "fileName": "cdr_{{#def.datetimeOperations.formatDate(def.vars.date,'YYYY_MM_DD_HH.mm.SSS')}}.html"
+      "fileName": "cdr_DEBUG.html"
     }
   },
   "exports": {
@@ -80,6 +114,21 @@
         },
         "cdr_segment_data_transform": {
           "$ref": "#/transforms/cdr_segment_data_transform"
+        },
+        "cdr_coalesce_conversation_ids_transform": {
+          "$ref": "#/transforms/cdr_coalesce_conversation_ids_transform"
+        },
+        "cdr_conversation_details_request": {
+          "$ref": "#/requests/cdr_conversation_details_request"
+        },
+        "cdr_aggregate_participant_attributes_transform": {
+          "$ref": "#/transforms/cdr_aggregate_participant_attributes_transform"
+        },
+        "cdr_ensure_attributes_transform": {
+          "$ref": "#/transforms/cdr_ensure_attributes_transform"
+        },
+        "write_data": {
+          "$ref": "#/transforms/write_data"
         }
       },
       "templates": {
