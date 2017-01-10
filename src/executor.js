@@ -402,6 +402,28 @@ function processRequest(requestName, request, _this, jobLog) {
 	    		}
 	    		break;
 	    	}
+	    	case 'getconversation': {
+	    		processRequestObject(request, {}, _this, jobLog);
+
+	    		var conversationIds = [];
+	    		if (request.strategy.toLowerCase() == 'single') {
+		    		conversationIds.push(request.parameters.conversationId);
+	    		} else if (request.strategy.toLowerCase() == 'repeat') {
+	    			conversationIds = resolveCollectionVar(request.collection, _this);
+	    		} else {
+	    			jobLog.error(request.strategy, 'Unknown request strategy: ');
+	    			deferred.reject('Unknown request strategy');
+	    		}
+
+	    		getconversations(requestName, conversationIds, _this, jobLog)
+	    			.then(() => deferred.resolve())
+					.catch(function(error) {
+						jobLog.error(error.stack);
+						deferred.reject(error);
+					});
+
+	    		break;
+	    	}
 	    	default: {
 	    		var err = 'Unknown request type: ' + request.type;
 	    		log.error(err);
@@ -412,6 +434,75 @@ function processRequest(requestName, request, _this, jobLog) {
 		jobLog.error(e.stack);
 		deferred.reject(e);
 	}
+
+	return deferred.promise;
+}
+
+function resolveCollectionVar(varName, _this, collection, collectionStrings) {
+	// This must be the first time around, initialize
+	if (!collection) {
+		collectionStrings = varName.split('.');
+		collection = _this.defs;
+
+		// Validate
+		var first = collectionStrings.shift();
+		if (first.toLowerCase() != 'def') {
+			throw new Error('Collection definition must begin with the "def" object! Collection: ' + request.strategy.collection);
+		}
+	}
+
+	// Pop off next property
+	var nextProp = collectionStrings.shift();
+	collection = collection[nextProp];
+
+	if (collectionStrings.length > 0) {
+		// Keep digging
+		return resolveCollectionVar(varName, _this, collection, collectionStrings);
+	} else {
+		// Return collection object
+		return collection;
+	}
+}
+
+function getconversations(requestName, conversationIds, _this, jobLog, deferred, i) {
+	if (!deferred) 
+		deferred = Q.defer();
+	if (!i)
+		i=0;
+
+	// Done?
+	if (i >= conversationIds.length) {
+		log.verbose('getconversations complete');
+		deferred.resolve();
+		return;
+	}
+
+	// Get conversation ID
+	var conversationId = conversationIds[i];
+
+	// Invoke API
+	api.getConversation(conversationId)
+		.then(function(response) {
+			if (conversationIds.length === 1) {
+				// Single conversation, just set the response as the object
+				_this.defs.data[requestName] = response;
+			} else {
+				// Initialize object
+				if (!_this.defs.data[requestName]) 
+					_this.defs.data[requestName] = {};
+
+				// Set response data to conversation ID
+				_this.defs.data[requestName][conversationId] = response;
+			}
+
+			// Recursion!
+			i++;
+			getconversations(requestName, conversationIds, _this, jobLog, deferred, i);
+		})
+		.catch(function(error) {
+			jobLog.error(error.stack);
+			deferred.reject(error);
+		});
 
 	return deferred.promise;
 }

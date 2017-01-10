@@ -24,6 +24,7 @@ function Api() {
 	this.analyticsApi = new purecloud.AnalyticsApi(this.pureCloudSession);
 	this.authorizationApi = new purecloud.AuthorizationApi(this.pureCloudSession);
 	this.usersApi = new purecloud.UsersApi(this.pureCloudSession);
+	this.conversationsApi = new purecloud.ConversationsApi(this.pureCloudSession);
 
 	if (config.args.debugapi === true) {
 		log.debug('debugging api');
@@ -187,6 +188,37 @@ Api.prototype.getUsers = function(pageSize, pageNumber, id, sortOrder, expand, d
 			try {
 				if (retryOnError(error, 
 					function(){_this.getUsers(pageSize, pageNumber, id, sortOrder, expand, deferred, _this, results);}))
+					return;
+
+				log.error(error);
+				deferred.reject(error);
+			} catch(e) {
+				log.error(e.stack);
+				deferred.reject(e);
+			}
+		});
+
+	return deferred.promise;
+};
+
+Api.prototype.getConversation = function(conversationId, deferred, _this) {
+	if (!deferred) 
+		deferred = Q.defer();
+	if (!_this)
+		_this = this;
+
+	var startTime = new moment();
+	_this.conversationsApi.getConversationId(conversationId)
+		.then(function(result) {
+			if (config.args.debugapi === true) 
+				log.verbose('Request "getUsers" completed in ' + moment().diff(startTime, new moment()) + ' ms');
+
+			deferred.resolve(result);
+		})
+		.catch(function(error){
+			try {
+				if (retryOnError(error, 
+					function(){_this.getConversation(conversationId, deferred, _this);}))
 					return;
 
 				log.error(error);
