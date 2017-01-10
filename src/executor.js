@@ -474,7 +474,9 @@ function getconversations(requestName, conversationIds, _this, jobLog, deferred,
 	if (i >= conversationIds.length) {
 		log.verbose('getconversations complete');
 		deferred.resolve();
-		return;
+		return deferred.promise;
+	} else {
+		log.verbose('Getting ' + (conversationIds.length - i) + ' more conversations...');
 	}
 
 	// Get conversation ID
