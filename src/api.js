@@ -35,6 +35,15 @@ function Api() {
 Api.prototype.login = function() {
 	var deferred = Q.defer();
 
+	if (!this.pureCloudSession.options.clientId || this.pureCloudSession.options.clientId === '') {
+		deferred.reject(new Error('Authentication error: Client ID not set'));
+		return deferred.promise;
+	}
+	if (!this.pureCloudSession.options.clientSecret || this.pureCloudSession.options.clientSecret === '') {
+		deferred.reject(new Error('Authentication error: Client Secret not set'));
+		return deferred.promise;
+	}
+
 	var startTime = new moment();
 	this.pureCloudSession.login()
 		.then(function() {
@@ -43,7 +52,9 @@ Api.prototype.login = function() {
 			return deferred.resolve();
 		})
 		.catch(function(error) {
-			return deferred.reject(error);
+			var e = new Error('Authentication failed! Check your Client ID and Secret');
+			log.error(error);
+			return deferred.reject(e);
 		});
 
 	return deferred.promise;
