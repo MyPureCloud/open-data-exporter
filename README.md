@@ -9,7 +9,7 @@ Full documentation is [in the reopo's wiki](https://github.com/MyPureCloud/open-
 # TLDR;
 
 1. Create a [config file](https://github.com/MyPureCloud/open-data-exporter/wiki/Configuration-Files), or use one of the [example config files](https://github.com/MyPureCloud/open-data-exporter/tree/master/src/config/examples).
-2. Execute jobs: `node index.js /config=./config/examples/abandon_report.json /jobs=abandon_report`
+2. Execute jobs: `node index.js /config=./config/examples/abandon_report.json /jobs=abandons_job`
 
 # Features
 
