@@ -158,6 +158,55 @@ Api.prototype.postUsersAggregatesQuery = function(request, deferred, _this) {
 	return deferred.promise;
 };
 
+Api.prototype.postUsersDetailsQuery = function(request, _this, deferred, results) {
+	if (!deferred) 
+		deferred = Q.defer();
+	if (!_this)
+		_this = this;
+
+	if (!request.body.paging) request.body.paging = {'pageSize':100,'pageNumber':1};
+	if (!request.body.paging.pageSize || request.body.paging.pageSize > 100) request.body.paging.pageSize = 100;
+	if (!request.body.paging.pageNumber) request.body.paging.pageNumber = 1;
+
+	var startTime = new moment();
+	_this.analyticsApi.postUsersDetailsQuery(JSON.stringify(request.body))
+		.then(function(result){
+			if (config.args.debugapi === true) 
+				log.verbose('Request "postUsersDetailsQuery" completed in ' + moment().diff(startTime, new moment()) + ' ms');
+
+			if (!results) {
+				results = result;
+			} else {
+				if (result.userDetails)
+					results.userDetails = results.userDetails.concat(result.userDetails);
+			}
+
+			if (request.getAllPages === true && result.userDetails) {
+				request.body.paging.pageNumber++;
+				log.verbose('Getting more data from postUsersDetailsQuery page ' + request.body.paging.pageNumber);
+				_this.postUsersDetailsQuery(request, _this, deferred, results);
+			} else {
+				deferred.resolve(results);
+			}
+		})
+		.catch(function(error){
+			log.debug(error.status, 'status: ');
+			try {
+				if (retryOnError(error, 
+					function(){_this.postUsersDetailsQuery(request, _this, deferred, results);}))
+					return;
+
+				log.error(error);
+				deferred.reject(error);
+			} catch(e) {
+				log.error(e.stack);
+				deferred.reject(e);
+			}
+		});
+
+	return deferred.promise;
+};
+
 Api.prototype.getUsers = function(pageSize, pageNumber, id, sortOrder, expand, deferred, _this, results) {
 	if (!deferred) 
 		deferred = Q.defer();
