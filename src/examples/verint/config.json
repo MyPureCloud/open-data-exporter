@@ -11,7 +11,7 @@
       "type": "conversationAggregate",
       "strategy": "single",
       "body": {
-        "interval": "{{#def.vars.currentInterval}}",
+        "interval": "{{#def.vars.previousInterval}}",
         "groupBy": [
           "userId"
         ],
@@ -48,7 +48,7 @@
         "verint_agent_scorecard_report_user_query_transform": { "$ref": "#/transforms/verint_agent_scorecard_report_user_query_transform" }
       },
       "body": {
-        "interval": "{{#def.vars.currentInterval}}",
+        "interval": "{{#def.vars.previousInterval}}",
         "groupBy": [
           "userId"
         ],
@@ -115,8 +115,8 @@
   "templates": {
     "verint_agent_scorecard_report_template": {
       "name": "Verint Agent Scorecard Report template",
-      "template": "Verint Report\nDate:{{#def.datetimeOperations.formatDate(def.vars.currentIntervalStart, 'MM/DD/YYYY')}}\nStart Time:{{#def.datetimeOperations.formatDate(def.vars.currentIntervalStart, 'HH:mm')}}\nEnd Time:{{#def.datetimeOperations.formatDate(def.datetimeOperations.addDuration(def.vars.currentIntervalStart, def.vars.interval), 'HH:mm')}}\n\nAGENT_ID DATE STAFF_TIME TALK_TIME ACW_TIME HOLD_TIME AUX_ALL_TIME AUX_IN_TIME AUX_OUT_TIME IDLE_TIME ACDCALLS\n\n{{~it.data.verint_agent_scorecard_report_call_query.results :result}}{{=it.verint.getUserData(it.data.users, result.group.userId).email}} {{=it.datetimeOperations.formatDate(it.datetimeOperations.parseInterval(result.flatData.c0.interval).start, 'YYYY-MM-DD')}} {{=result.flatData.c0.flatMetrics.tAgentRoutingStatus_ALL.stats.sum}} {{=result.flatData.c0.flatMetrics.tTalk.stats.sum}} {{=result.flatData.c0.flatMetrics.tAcw.stats.sum}} {{=result.flatData.c0.flatMetrics.tHeld.stats.sum}} {{=result.flatData.c0.flatMetrics.tHandle.stats.sum}} {{=result.flatData.c0.flatMetrics.tAgentRoutingStatus_AUX_IN_TIME.stats.sum}} {{=result.flatData.c0.flatMetrics.tAgentRoutingStatus_COMMUNICATING.stats.sum}} {{=result.flatData.c0.flatMetrics.tAgentRoutingStatus_IDLE.stats.sum}} {{=result.flatData.c0.flatMetrics.tHandle.stats.count}} \n{{~}}",
-      "fileName": "verint_agent_scorecard_report_{{#def.datetimeOperations.formatDate(def.vars.currentIntervalStart,'YYYY_MM_DD_HH.mm')}}.txt"
+      "template": "Verint Report\nDate:{{#def.datetimeOperations.formatDate(def.vars.previousIntervalStart, 'MM/DD/YYYY')}}\nStart Time:{{#def.datetimeOperations.formatDate(def.vars.previousIntervalStart, 'HH:mm')}}\nEnd Time:{{#def.datetimeOperations.formatDate(def.datetimeOperations.addDuration(def.vars.previousIntervalStart, def.vars.interval), 'HH:mm')}}\n\nAGENT_ID DATE STAFF_TIME TALK_TIME ACW_TIME HOLD_TIME AUX_ALL_TIME AUX_IN_TIME AUX_OUT_TIME IDLE_TIME ACDCALLS\n\n{{~it.data.verint_agent_scorecard_report_call_query.results :result}}{{=it.verint.getUserData(it.data.users, result.group.userId).email}} {{=it.datetimeOperations.formatDate(it.datetimeOperations.parseInterval(result.flatData.c0.interval).start, 'YYYY-MM-DD')}} {{=result.flatData.c0.flatMetrics.tAgentRoutingStatus_ALL.stats.sum}} {{=result.flatData.c0.flatMetrics.tTalk.stats.sum}} {{=result.flatData.c0.flatMetrics.tAcw.stats.sum}} {{=result.flatData.c0.flatMetrics.tHeld.stats.sum}} {{=result.flatData.c0.flatMetrics.tHandle.stats.sum}} {{=result.flatData.c0.flatMetrics.tAgentRoutingStatus_AUX_IN_TIME.stats.sum}} {{=result.flatData.c0.flatMetrics.tAgentRoutingStatus_COMMUNICATING.stats.sum}} {{=result.flatData.c0.flatMetrics.tAgentRoutingStatus_IDLE.stats.sum}} {{=result.flatData.c0.flatMetrics.tHandle.stats.count}} \n{{~}}",
+      "fileName": "verint_agent_scorecard_report_{{#def.datetimeOperations.formatDate(def.vars.previousIntervalStart,'YYYY_MM_DD_HH.mm')}}.txt"
     }
   },
   "exports": {
@@ -131,7 +131,7 @@
     "verint_agent_scorecard_report_config": {
       "name": "AGENT DETAIL REPORT",
       "externalModules": {
-        "verint": "./extensions/verint/verint.js"
+        "verint": "./examples/verint/extensions.js"
       },
       "executionPlan": {
         "verint_agent_scorecard_report_call_query": {
@@ -164,7 +164,7 @@
         }
       },
       "customData": {
-        "interval": "P1D"
+        "interval": "PT1H"
       }
     }
   },

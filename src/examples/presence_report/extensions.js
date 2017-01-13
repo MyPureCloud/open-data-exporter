@@ -9,7 +9,8 @@ function Extensions() {
 
 Extensions.prototype.aggregateUserData = function(data) {
 	var m = new moment();
-	console.log('Aggregating user data...');
+	console.log('Aggregating ' + data.presence_detail_request.userDetails.length + ' user data elements.' + 
+		(data.presence_detail_request.userDetails.length > 500 ? ' This could take a while.' : ''));
 
 	// Make user data available by ID
 	data.user_resolution_query.users = {};
@@ -22,7 +23,6 @@ Extensions.prototype.aggregateUserData = function(data) {
 
 	// Iterate users
 	_.forEach(data.presence_detail_request.userDetails, function(user) {
-		console.log('Processing ' + user.userId);
 
 		// Get existing object or make new one
 		var newUser = data.userData[user.userId] ? data.userData[user.userId] : {
@@ -70,7 +70,6 @@ Extensions.prototype.populateUserIds = function(data, request) {
 
 
 function processEvents(events) {
-	console.log('Sorting ' + events.length + ' events...');
 	var m = new moment();
 	// Sort into chronological order by start time
 	events.sort(function(a, b) {
@@ -89,8 +88,8 @@ function processEvents(events) {
 		*/
 	
 		/* The above code has been left here for anyone who wants to learn.
-		 * It was taking ~20 SECONDS to sort 300 items!
-		 * The code below takes ~1 MILLIsecond to sort the same dataset.
+		 * It was taking ~20 seconds to sort 300 items!
+		 * The code below takes ~1 millisecond to sort the same dataset.
 		 * Moment.js is great for robust date operations, but it has a lot of overhead.
 		 */
 
@@ -100,7 +99,6 @@ function processEvents(events) {
 		return instadate.differenceInDates(date1, date2);
 	});
 	var d = moment().diff(m, new moment());
-	console.log('Sort completed in ' + d + ' ms');
 
 	// Calculate event duration
 	_.forEach(events, function(event) {

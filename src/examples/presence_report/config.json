@@ -58,7 +58,7 @@
     "presence_detail_template": {
       "name": "Presence Detail template",
       "templateFile": "./examples/presence_report/detail_template.html",
-      "fileName": "presence_detail.html"
+      "fileName": "presence_detail_{{#def.datetimeOperations.formatDate(def.vars.previousIntervalStart,'YYYY_MM_DD_HH.mm')}}.html"
     }
   },
   "exports": {
@@ -99,7 +99,7 @@
         }
       },
       "customData": {
-        "interval": "P1D"
+        "interval": "PT1H"
       }
     }
   },

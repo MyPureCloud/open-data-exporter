@@ -11,7 +11,7 @@
       "strategy": "single",
       "getAllPages": true,
       "body": {
-        "interval": "{{#def.vars.currentInterval}}",
+        "interval": "{{#def.vars.previousInterval}}",
         "order": "asc",
         "orderBy": "conversationStart",
         "paging": {
@@ -79,12 +79,19 @@
       "expressions": [
         "{{#def.cdr_module.ensureAttributes(def.data.cdr_request)}}"
       ]
+    },
+    "write_data": {
+      "name": "write_data",
+      "type": "transform",
+      "expressions": [
+        "{{#def.dataOperations.writeData(def.data, '../local/call_detail_report/data.json')}}"
+      ]
     }
   },
   "templates": {
     "cdr_template": {
       "name": "CDR template",
-      "templateFile": "./config/examples/cdr_template.html",
+      "templateFile": "./examples/call_detail_report/cdr_template.html",
       "fileName": "cdr_{{#def.datetimeOperations.formatDate(def.vars.date,'YYYY_MM_DD_HH.mm.SSS')}}.html"
     }
   },
@@ -92,14 +99,14 @@
     "cdr_export": {
       "name": "CDR file export",
       "type": "file",
-      "destination": "../local/cdr/"
+      "destination": "../local/call_detail_report/"
     }
   },
   "configurations": {
     "cdr_config": {
       "name": "CDR Configuration",
       "externalModules": {
-        "cdr_module": "./extensions/examples/cdr.js"
+        "cdr_module": "./examples/call_detail_report/extensions.js"
       },
       "executionPlan": {
         "cdr_request": {
@@ -119,6 +126,9 @@
         },
         "cdr_ensure_attributes_transform": {
           "$ref": "#/transforms/cdr_ensure_attributes_transform"
+        },
+        "write_data": {
+          "$ref": "#/transforms/write_data"
         }
       },
       "templates": {
@@ -132,7 +142,7 @@
         }
       },
       "customData": {
-        "interval": "PT2H"
+        "interval": "PT1H"
       }
     }
   },

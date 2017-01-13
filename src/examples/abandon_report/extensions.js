@@ -47,6 +47,8 @@ Examples.prototype.countSegments = function(data) {
  */
 Examples.prototype.setCustomerParticipants = function(data) {
 	_.forEach(data.conversations, function(conversation) {
+		conversation.customerParticipant = {};
+		conversation.queue = {};
 		_.forEach(conversation.participants, function(participant) {
 			if (participant.purpose == 'customer') {
 				conversation.customerParticipant = participant;

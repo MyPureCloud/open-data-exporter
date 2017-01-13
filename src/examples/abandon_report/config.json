@@ -11,7 +11,7 @@
       "strategy": "single",
       "getAllPages": true,
       "body": {
-        "interval": "{{#def.vars.currentInterval}}",
+        "interval": "{{#def.vars.previousInterval}}",
         "order": "asc",
         "orderBy": "conversationStart",
         "paging": {
@@ -60,14 +60,21 @@
       "name": "Abandons transform",
       "type": "transform",
       "expressions": [
-        "{{#def.examples.setCustomerParticipants(def.data.abandons_request)}}"
+        "{{#def.abandon_module.setCustomerParticipants(def.data.abandons_request)}}"
+      ]
+    },
+    "write_data": {
+      "name": "write_data",
+      "type": "transform",
+      "expressions": [
+        "{{#def.dataOperations.writeData(def.data, '../local/abandon_report/data.json')}}"
       ]
     }
   },
   "templates": {
     "abandons_template": {
       "name": "Abandons template",
-      "template": "ABANDONED CONVERSATIONS\nRun date: {{#def.vars.date}}\nCompany: {{#def.vars.company}}\nInterval: {{#def.vars.currentInterval}}\nJob: {{#def.job.name}}\nConfiguration: {{#def.configuration.name}}\nConversation ID|Queue|Customer Name|ANI\n{{~it.data.abandons_request.conversations :conversation}}{{=conversation.conversationId}}|{{=conversation.queue.participantName}}|{{=conversation.customerParticipant.participantName}}|{{=conversation.customerParticipant.ani}}\n{{~}}",
+      "template": "ABANDONED CONVERSATIONS\nRun date: {{#def.vars.date}}\nCompany: {{#def.vars.company}}\nInterval: {{#def.vars.previousInterval}}\nJob: {{#def.job.name}}\nConfiguration: {{#def.configuration.name}}\nConversation ID|Queue|Customer Name|ANI\n{{~it.data.abandons_request.conversations :conversation}}{{=conversation.conversationId}}|{{=conversation.queue.participantName}}|{{=conversation.customerParticipant.participantName}}|{{=conversation.customerParticipant.ani}}\n{{~}}",
       "fileName": "abandons_{{#def.datetimeOperations.formatDate(def.vars.date,'YYYY_MM_DD_HH.mm.SSS')}}.txt"
     }
   },
@@ -75,7 +82,7 @@
     "abandons_export": {
       "name": "Conversation detail file export",
       "type": "file",
-      "destination": "../local/examples/",
+      "destination": "../local/abandon_report/",
       "customData": {
         "exportData": "My export data"
       }
@@ -85,7 +92,7 @@
     "abandons_config": {
       "name": "Abandons Configuration",
       "externalModules": {
-        "examples": "./extensions/examples/examples.js"
+        "abandon_module": "./examples/abandon_report/extensions.js"
       },
       "executionPlan": {
         "abandons_request": {
@@ -93,6 +100,9 @@
         },
         "abandons_transform": {
           "$ref": "#/transforms/abandons_transform"
+        },
+        "write_data": {
+          "$ref": "#/transforms/write_data"
         }
       },
       "templates": {
@@ -106,7 +116,7 @@
         }
       },
       "customData": {
-        "interval": "PT2H"
+        "interval": "PT1H"
       }
     }
   },
