@@ -328,8 +328,20 @@ function processRequest(requestName, request, _this, jobLog) {
 		    				_this.defs.data[requestName] = data;
 		    				deferred.resolve();
 		    			});
-	    		} else if (request.strategy.toLowerCase() =='repeat') {
-	    			throw new Error('getUsers (repeat) is not implemented!');
+	    		} else {
+	    			jobLog.error(request.strategy, 'Unknown request strategy: ');
+	    			deferred.reject('Unknown request strategy');
+	    		}
+	    		break;
+	    	}
+	    	case 'usersdetailsquery': {
+	    		if (request.strategy.toLowerCase() == 'single') {
+	    			processRequestObject(request, {}, _this, jobLog);
+		    		api.postUsersDetailsQuery(request)
+		    			.then(function(data) {
+		    				_this.defs.data[requestName] = data;
+		    				deferred.resolve();
+		    			});
 	    		} else {
 	    			jobLog.error(request.strategy, 'Unknown request strategy: ');
 	    			deferred.reject('Unknown request strategy');
@@ -348,8 +360,6 @@ function processRequest(requestName, request, _this, jobLog) {
 							jobLog.error(error.stack);
 							deferred.reject(error);
 						});
-	    		} else if (request.strategy.toLowerCase() =='repeat') {
-	    			throw new Error('getUsers (repeat) is not implemented!');
 	    		} else {
 	    			jobLog.error(request.strategy, 'Unknown request strategy: ');
 	    			deferred.reject('Unknown request strategy');
