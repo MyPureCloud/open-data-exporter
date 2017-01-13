@@ -22,6 +22,8 @@ var log = new Logger('main');
 
 log.writeBox('Open Data Exporter v' + packageData.version, null, 'cyan');
 
+var start = new moment();
+
 executor.initialize()
 	.then(function() {
 		if (!config.args.jobs) return;
@@ -31,4 +33,7 @@ executor.initialize()
 	})
 	.catch(function(error) {
 		log.error(error.stack);
+	})
+	.finally(function() {
+		log.debug('Execution done in ' + moment().diff(start, new moment()) + ' ms');
 	});
