@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Presence Detail Report</title>
+	<link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+	<script src="https://code.jquery.com/jquery-3.1.1.min.js" integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8=" crossorigin="anonymous"></script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+	<style type="text/css">
+		
+	</style>
+
+	<script type="text/javascript">
+		function showData(id, name) {
+			// Clear
+			$('#data').children().addClass('hidden');
+			$('#nav').children().removeClass('active');
+
+			// Set
+			$('#data-'+id).removeClass('hidden');
+			$('#nav-'+id).addClass('active');
+			$('#dropdownText').text(name);
+		}
+	</script>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>{{#def.job.name}} <small>{{#def.vars.previousInterval}}</small></h1>
+</div>
+
+<!-- Navigation -->
+<div class="row">
+	<div class="col-md-12">
+		<ul class="nav nav-tabs">
+			<li role="presentation" class="disabled"><a href="#">User:</a></li>
+			<li role="presentation" class="dropdown">
+				<a class="dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">
+					<span id="dropdownText">Select User</span><span class="caret"></span>
+				</a>
+				<ul class="dropdown-menu" id="nav">
+					{{~it.data.users :user}}
+					<li role="presentation" id="nav-{{=user.id}}"><a href="#" onclick="showData('{{=user.id}}','{{=user.name}}')">{{=user.name}}</a></li>
+					{{~}}
+				</ul>
+			</li>
+		</ul>
+	</div>
+</div>
+
+<!-- Data -->
+<div id="data" class="row">
+{{~it.data.users :user}}
+<div id="data-{{=user.id}}" class="col-md-12 hidden">
+<table class="table">
+	<tr>
+		<th>Presence</th>
+		<th>Start Time</th>
+		<th>End Time</th>
+		<th>Duration</th>
+		<th>Routing Status</th>
+		<th>Start Time</th>
+		<th>End Time</th>
+		<th>Duration</th>
+	</tr>
+	{{~user.events :event}}
+	<tr>
+		{{? event.systemPresence}}
+		<td>{{=event.systemPresence}}</td>
+		<td>{{=event.startTime}}</td>
+		<td>{{=event.endTime}}</td>
+		<td>{{=event.durationString}}</td>
+		{{?? event.routingStatus}}
+		<td></td>
+		<td></td>
+		<td></td>
+		<td></td>
+		<td>{{=event.routingStatus}}</td>
+		<td>{{=event.startTime}}</td>
+		<td>{{=event.endTime}}</td>
+		<td>{{=event.durationString}}</td>
+		{{?}}
+	</tr>
+	{{~}}
+</table>
+</div>
+{{~}}
+</div>
+
+</body>
+</html>

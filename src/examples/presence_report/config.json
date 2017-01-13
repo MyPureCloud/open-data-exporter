@@ -1,0 +1,119 @@
+{
+  "pureCloud": {
+	  "clientId": "",
+	  "clientSecret": "",
+	  "timeout": 10000
+	},
+  "requests": {
+  	"presence_detail_request": {
+  		"name": "Presence Detail Request",
+  		"type": "usersDetailsQuery",
+      "strategy": "single",
+      "getAllPages": true,
+      "body": {
+		   "interval": "{{#def.vars.previousInterval}}",
+		   "paging": {
+		     "pageSize": 100,
+		     "pageNumber": 1
+		   }
+			}
+  	},
+    "user_resolution_query": {
+      "name": "User Resolution Query",
+      "type": "getUsers",
+      "strategy": "single",
+      "transforms": {
+        "populate_user_ids_transform": { "$ref": "#/transforms/populate_user_ids_transform" }
+      },
+      "getAllPages": true,
+      "parameters": {
+        "pageSize": 500
+      }
+    }
+  },
+  "transforms": {
+    "agg_user_data_transform": {
+      "name": "Aggregate User Data transform",
+      "type": "transform",
+      "expressions": [
+        "{{#def.presence_module.aggregateUserData(def.data)}}"
+      ]
+    },
+    "populate_user_ids_transform": {
+      "name": "populate_user_ids_transform",
+      "type": "transform",
+      "expressions": [
+        "{{#def.presence_module.populateUserIds(def.data.presence_detail_request, def.vars.request)}}"
+      ]
+    },
+    "write_data": {
+      "name": "write_data",
+      "type": "transform",
+      "expressions": [
+        "{{#def.dataOperations.writeData(def.data, '../local/presence_report/data.json')}}"
+      ]
+    }
+  },
+  "templates": {
+    "presence_detail_template": {
+      "name": "Presence Detail template",
+      "templateFile": "./examples/presence_report/detail_template.html",
+      "fileName": "presence_detail.html"
+    }
+  },
+  "exports": {
+    "presence_detail_export": {
+      "name": "Presence Detail file export",
+      "type": "file",
+      "destination": "../local/presence_report/"
+    }
+  },
+  "configurations": {
+    "presence_detail_config": {
+      "name": "Presence Detail Configuration",
+      "externalModules": {
+        "presence_module": "./examples/presence_report/extensions.js"
+      },
+      "executionPlan": {
+        "presence_detail_request": {
+          "$ref": "#/requests/presence_detail_request"
+        },
+        "user_resolution_query": {
+          "$ref": "#/requests/user_resolution_query"
+        },
+        "agg_user_data_transform": {
+          "$ref": "#/transforms/agg_user_data_transform"
+        },
+        "write_data": {
+          "$ref": "#/transforms/write_data"
+        }
+      },
+      "templates": {
+        "presence_detail_template": {
+          "$ref": "#/templates/presence_detail_template"
+        }
+      },
+      "exports": {
+        "presence_detail_export": {
+          "$ref": "#/exports/presence_detail_export"
+        }
+      },
+      "customData": {
+        "interval": "P1D"
+      }
+    }
+  },
+  "jobs": {
+    "presence_detail_job": {
+      "name": "User Presence",
+      "configurations": {
+        "presence_detail_config": {
+          "$ref": "#/configurations/presence_detail_config"
+        }
+      },
+      "cron": "10,40 * * * * *",
+      "customData": {}
+    }
+  },
+  "customData": {}
+}
