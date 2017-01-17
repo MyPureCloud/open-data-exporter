@@ -22,12 +22,16 @@ Full documentation is [in the reopo's wiki](https://github.com/MyPureCloud/open-
 
 ## Included Configurations
 
-Configuration files can be found in [src/config](https://github.com/MyPureCloud/open-data-exporter/tree/master/src/config).
+Configuration files can be found in [src/examples](https://github.com/MyPureCloud/open-data-exporter/tree/master/src/examples).
 
-* verint/config.json
-  * Verint Agent Scorecard Report - Produces a flat text file with agent scorecard data in the standard Verint format
-* examples/abandon_report.json
+* abandon_report
   * Abandon Report - Produces a flat text file with a list of calls abandoned in queue
+* call_detail_report
+  * Call Detail Report - Produces a HTML file with a list of ACD calls occurring within the interval
+* presence_report
+  * Presence Report - Produces a HTML file with presence and routing status events per user for all users in the org
+* verint
+  * Verint Agent Scorecard Report - Produces a flat text file with agent scorecard data in the standard Verint format
 
 # Planned features
 
