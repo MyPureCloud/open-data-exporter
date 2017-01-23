@@ -229,7 +229,8 @@ function executeConfigurations(job, configurationNames, _this, jobLog, deferred)
 			});
 		})
 		.then(function() {
-			deferred.resolve();
+			// Process next
+			executeConfigurations(job, configurationNames, _this, jobLog, deferred);
 		})
 		.catch(function(error) {
 			jobLog.error(error.stack);
