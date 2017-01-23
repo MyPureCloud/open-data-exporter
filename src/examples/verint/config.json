@@ -138,6 +138,36 @@
           "tHandle"
         ]
       }
+    },
+    "verint_chat_stats_query": {
+      "name": "Verint Chat Statistics Query",
+      "type": "conversationAggregate",
+      "strategy": "single",
+      "getAllPages": true,
+      "body": {
+        "interval": "{{#def.vars.previousInterval}}",
+        "groupBy": [
+          "queueId"
+        ],
+        "filter": {
+          "type": "and",
+          "predicates": [
+           {
+            "type": "dimension",
+            "dimension": "mediaType",
+            "operator": "matches",
+            "value": "chat"
+           }
+          ]
+        },
+        "metrics": [
+          "nOffered",
+          "oServiceLevel",
+          "tAbandon",
+          "tWait",
+          "tHandle"
+        ]
+      }
     }
   },
   "transforms": {
@@ -186,6 +216,14 @@
         "{{#def.verint.aggregateMediaStatData(def.data.verint_email_stats_query, def.data.queues)}}"
       ]
     },
+    "aggregate_chat_stat_data_transform": {
+      "name": "aggregate_chat_stat_data_transform",
+      "type": "transform",
+      "expressions": [
+        "{{#def.verint.flattenQueueData(def.data)}}",
+        "{{#def.verint.aggregateMediaStatData(def.data.verint_chat_stats_query, def.data.queues)}}"
+      ]
+    },
     "write_data": {
       "name": "write_data",
       "type": "transform",
@@ -209,6 +247,11 @@
       "name": "Verint Email Stats Report template",
       "templateFile": "./examples/verint/email_stats_report_template.txt",
       "fileName": "verint_email_stats_report_{{#def.datetimeOperations.formatDate(def.vars.previousIntervalStart,'YYYY_MM_DD_HH.mm')}}.txt"
+    },
+    "verint_chat_stats_report_template": {
+      "name": "Verint Chat Stats Report template",
+      "templateFile": "./examples/verint/chat_stats_report_template.txt",
+      "fileName": "verint_chat_stats_report_{{#def.datetimeOperations.formatDate(def.vars.previousIntervalStart,'YYYY_MM_DD_HH.mm')}}.txt"
     }
   },
   "exports": {
@@ -324,6 +367,39 @@
       "customData": {
         "interval": "P5D"
       }
+    },
+    "verint_chat_stats_report_config": {
+      "name": "Chat Statistics Report",
+      "externalModules": {
+        "verint": "./examples/verint/extensions.js"
+      },
+      "executionPlan": {
+        "verint_get_queues_query": {
+          "$ref": "#/requests/verint_get_queues_query"
+        },
+        "verint_chat_stats_query": {
+          "$ref": "#/requests/verint_chat_stats_query"
+        },
+        "aggregate_chat_stat_data_transform": {
+          "$ref": "#/transforms/aggregate_chat_stat_data_transform"
+        },
+        "write_data": {
+          "$ref": "#/transforms/write_data"
+        }
+      },
+      "templates": {
+        "verint_chat_stats_report_template": {
+          "$ref": "#/templates/verint_chat_stats_report_template"
+        }
+      },
+      "exports": {
+        "verint_file_export": {
+          "$ref": "#/exports/verint_file_export"
+        }
+      },
+      "customData": {
+        "interval": "P5D"
+      }
     }
   },
   "jobs": {
@@ -357,11 +433,30 @@
       "cron": "10,40 * * * * *",
       "customData": {}
     },
+    "verint_chat_stats_report_job": {
+      "name": "Verint Chat Stats Report job",
+      "configurations": {
+        "verint_chat_stats_report_config": {
+          "$ref": "#/configurations/verint_chat_stats_report_config"
+        }
+      },
+      "cron": "10,40 * * * * *",
+      "customData": {}
+    },
     "verint_all": {
       "name": "Verint all jobs",
       "configurations": {
         "verint_agent_scorecard_report_config": {
           "$ref": "#/configurations/verint_agent_scorecard_report_config"
+        },
+        "verint_call_stats_report_config": {
+          "$ref": "#/configurations/verint_call_stats_report_config"
+        },
+        "verint_email_stats_report_config": {
+          "$ref": "#/configurations/verint_email_stats_report_config"
+        },
+        "verint_chat_stats_report_config": {
+          "$ref": "#/configurations/verint_chat_stats_report_config"
         }
       },
       "cron": "10,40 * * * * *",

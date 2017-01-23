@@ -1,0 +1,3 @@
+ReportDate TimeInterval Queue                                              Chats Replied    SL   ASA     AHT   Abd
+{{~it.data.verint_chat_stats_query.results: conversation}}{{=it.verint.rightPad(it.verint.getIntervalFormat(it.vars), 24)}}{{=it.verint.rightPad(conversation.queue.name, 50)}} {{=it.verint.leftPad(conversation.metrics.nOffered.stats.count, 5)}} {{=it.verint.leftPad(conversation.metrics.tHandle.stats.count, 7)}} {{=it.verint.leftPad(conversation.metrics.oServiceLevel.stats.percent, 5)}} {{=it.verint.leftPad(conversation.metrics.tWait.stats.asa, 5)}} {{=it.verint.leftPad(conversation.metrics.tHandle.stats.aht, 7)}} {{=it.verint.leftPad(conversation.metrics.tAbandon.stats.count, 5)}} 
+{{~}}
