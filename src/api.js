@@ -25,6 +25,7 @@ function Api() {
 	this.authorizationApi = new purecloud.AuthorizationApi(this.pureCloudSession);
 	this.usersApi = new purecloud.UsersApi(this.pureCloudSession);
 	this.conversationsApi = new purecloud.ConversationsApi(this.pureCloudSession);
+	this.routingApi = new purecloud.RoutingApi(this.pureCloudSession);
 
 	if (config.args.debugapi === true) {
 		log.debug('debugging api');
@@ -261,6 +262,49 @@ Api.prototype.getUsers = function(pageSize, pageNumber, id, sortOrder, expand, d
 	return deferred.promise;
 };
 
+Api.prototype.getQueues = function(pageSize, pageNumber, sortBy, name, active, getAllPages, deferred, _this, results) {
+	if (!deferred) 
+		deferred = Q.defer();
+	if (!_this)
+		_this = this;
+
+	var startTime = new moment();
+	_this.routingApi.getQueues(pageSize, pageNumber, sortBy, name, active)
+		.then(function(result){
+			if (config.args.debugapi === true) 
+				log.verbose('Request "getQueues" completed in ' + moment().diff(startTime, new moment()) + ' ms');
+
+			if (!results) {
+				results = result;
+			} else {
+				results.entities = results.entities.concat(result.entities);
+			}
+
+			if (getAllPages === true && pageNumber < result.pageCount) {
+				pageNumber++;
+				log.verbose('Getting more data from page ' + pageNumber);
+				_this.getQueues(pageSize, pageNumber, sortBy, name, active, getAllPages, deferred, _this, results);
+			} else {
+				deferred.resolve(results);
+			}
+		})
+		.catch(function(error){
+			try {
+				if (retryOnError(error, 
+					function(){_this.getQueues(pageSize, pageNumber, sortBy, name, active, getAllPages, deferred, _this, results);}))
+					return;
+
+				log.error(error);
+				deferred.reject(error);
+			} catch(e) {
+				log.error(e.stack);
+				deferred.reject(e);
+			}
+		});
+
+	return deferred.promise;
+};
+
 Api.prototype.getConversation = function(conversationId, deferred, _this) {
 	if (!deferred) 
 		deferred = Q.defer();
@@ -271,7 +315,7 @@ Api.prototype.getConversation = function(conversationId, deferred, _this) {
 	_this.conversationsApi.getConversationId(conversationId)
 		.then(function(result) {
 			if (config.args.debugapi === true) 
-				log.verbose('Request "getUsers" completed in ' + moment().diff(startTime, new moment()) + ' ms');
+				log.verbose('Request "getConversation" completed in ' + moment().diff(startTime, new moment()) + ' ms');
 
 			deferred.resolve(result);
 		})

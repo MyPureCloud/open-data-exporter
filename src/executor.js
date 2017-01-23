@@ -390,22 +390,47 @@ function processRequest(requestName, request, _this, jobLog) {
 	    		processRequestObject(request, {}, _this, jobLog);
 
 	    		// Get parameter values
-	    		var pageSize, pageNumber, id, sortOrder, expand;
-	    		if (request.parameters) {
-		    		pageSize = request.parameters.pageSize;
-		    		pageNumber = request.parameters.pageNumber;
-		    		id = request.parameters.id;
-		    		sortOrder = request.parameters.sortOrder;
-		    		expand = request.parameters.expand;
-		    	}
+	    		var getUsersParams = {
+	    			pageSize: request.parameters.pageSize ? request.parameters.pageSize : 500, 
+	    			pageNumber: request.parameters.pageNumber ? request.parameters.pageNumber : 1, 
+	    			id: request.parameters.id ? request.parameters.id : undefined, 
+	    			sortOrder: request.parameters.sortOrder ? request.parameters.sortOrder : undefined, 
+	    			expand: request.parameters.expand ? request.parameters.expand : undefined
+	    		};
 	    		if (request.strategy.toLowerCase() == 'single') {
-		    		api.getUsers(pageSize, pageNumber, id, sortOrder, expand)
+		    		api.getUsers(getUsersParams.pageSize, getUsersParams.pageNumber, getUsersParams.id, getUsersParams.sortOrder, getUsersParams.expand)
 		    			.then(function(data) {
 		    				_this.defs.data[requestName] = data;
 		    				deferred.resolve();
 		    			});
 	    		} else if (request.strategy.toLowerCase() == 'repeat') {
 	    			throw new Error('getUsers (repeat) is not implemented!');
+	    		} else {
+	    			jobLog.warning(request.strategy + 'Unknown request strategy: ');
+	    			deferred.reject('Unknown request strategy');
+	    		}
+	    		break;
+	    	}
+	    	case 'getqueues': {
+	    		processRequestObject(request, {}, _this, jobLog);
+
+	    		// Get parameter values
+	    		if (!request.parameters) request.parameters = {};
+	    		var getQueuesParams = {
+	    			pageSize: request.parameters.pageSize ? request.parameters.pageSize : 500, 
+	    			pageNumber: request.parameters.pageNumber ? request.parameters.pageNumber : 1, 
+	    			sortBy: request.parameters.sortBy ? request.parameters.sortBy : undefined, 
+	    			name: request.parameters.name ? request.parameters.name : undefined, 
+	    			active: request.parameters.active ? request.parameters.active : undefined
+	    		};
+	    		if (request.strategy.toLowerCase() == 'single') {
+		    		api.getQueues(getQueuesParams.pageSize, getQueuesParams.pageNumber, getQueuesParams.sortBy, getQueuesParams.name, getQueuesParams.active, request.getAllPages)
+		    			.then(function(data) {
+		    				_this.defs.data[requestName] = data;
+		    				deferred.resolve();
+		    			});
+	    		} else if (request.strategy.toLowerCase() == 'repeat') {
+	    			throw new Error('getQueues (repeat) is not implemented!');
 	    		} else {
 	    			jobLog.warning(request.strategy + 'Unknown request strategy: ');
 	    			deferred.reject('Unknown request strategy');

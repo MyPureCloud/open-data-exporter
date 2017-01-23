@@ -1,4 +1,8 @@
 var _ = require('lodash');
+var leftPad = require('left-pad');
+var rightPad = require('right-pad');
+var moment = require('moment-timezone');
+
 
 
 function Verint() {
@@ -95,23 +99,94 @@ Verint.prototype.getUserData = function(users, id){
 	return users[id];
 };
 
+Verint.prototype.leftPad = leftPad;
+
+Verint.prototype.rightPad = rightPad;
+
+Verint.prototype.getIntervalFormat = function(vars) {
+	var start = vars.previousIntervalStart;
+	var end = vars.previousIntervalStart.clone().add(moment.duration(vars.interval));
+	return start.format('DD/MM/YYYY HH:mm') + '-' + end.format('HH:mm');
+};
+
+Verint.prototype.flattenQueueData = function(data) {
+	data.queues = {};
+	_.forEach(data.verint_get_queues_query.entities, function(queue) {
+		data.queues[queue.id] = queue;
+	});
+};
+
+Verint.prototype.aggregateCallStatData = function(data) {
+	_.forEach(data.verint_call_stats_query.results, function(conversation) {
+		// Set queue data
+		if (data.queues[conversation.group.queueId]) {
+			conversation.queue = data.queues[conversation.group.queueId];
+		} else {
+			// Handle unknown queue
+			conversation.queue = {
+				id: conversation.group.queueId,
+				name: conversation.group.queueId
+			};
+		}
+
+		// Initialize to default data to ensure values for missing metrics
+		conversation.metrics = {
+			"tHandle":{
+              "metric": "tHandle",
+              "stats": {
+                "max": -1,
+                "min": -1,
+                "count": -1,
+                "sum": -1
+              }
+            },
+            "oServiceLevel":{
+              "metric": "oServiceLevel",
+              "stats": {
+                "ratio": -1,
+                "numerator": -1,
+                "denominator": -1,
+                "target": -1
+              }
+            },
+            "tAbandon":{
+              "metric": "tAbandon",
+              "stats": {
+                "max": -1,
+                "min": -1,
+                "count": -1,
+                "sum": -1
+              }
+            },
+            "nOffered":{
+              "metric": "nOffered",
+              "stats": {
+                "count": -1
+              }
+            },
+            "tWait":{
+              "metric": "tWait",
+              "stats": {
+                "max": -1,
+                "min": -1,
+                "count": -1,
+                "sum": -1
+              }
+            }
+		};
+
+		// Set metrics
+		_.forEach(conversation.data[0].metrics, function(metric) {
+			conversation.metrics[metric.metric] = metric;
+		});
+
+		// Set computed metrics
+		conversation.metrics.tWait.stats.asa = (conversation.metrics.tWait.stats.sum / conversation.metrics.tWait.stats.count).toString().split('.')[0];
+		conversation.metrics.tHandle.stats.aht = (conversation.metrics.tHandle.stats.sum / conversation.metrics.tHandle.stats.count).toString().split('.')[0];
+		conversation.metrics.oServiceLevel.stats.percent = (conversation.metrics.oServiceLevel.stats.ratio * 100).toString().split('.')[0];
+	});
+};
+
+
+
 module.exports = new Verint();
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
