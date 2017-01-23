@@ -116,11 +116,11 @@ Verint.prototype.flattenQueueData = function(data) {
 	});
 };
 
-Verint.prototype.aggregateCallStatData = function(data) {
-	_.forEach(data.verint_call_stats_query.results, function(conversation) {
+Verint.prototype.aggregateMediaStatData = function(data, queues) {
+	_.forEach(data.results, function(conversation) {
 		// Set queue data
-		if (data.queues[conversation.group.queueId]) {
-			conversation.queue = data.queues[conversation.group.queueId];
+		if (queues[conversation.group.queueId]) {
+			conversation.queue = queues[conversation.group.queueId];
 		} else {
 			// Handle unknown queue
 			conversation.queue = {
