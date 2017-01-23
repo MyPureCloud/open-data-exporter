@@ -365,7 +365,7 @@
         }
       },
       "customData": {
-        "interval": "P5D"
+        "interval": "PT1H"
       }
     },
     "verint_chat_stats_report_config": {
@@ -398,7 +398,7 @@
         }
       },
       "customData": {
-        "interval": "P5D"
+        "interval": "PT1H"
       }
     }
   },
