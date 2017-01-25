@@ -128,7 +128,7 @@
           "$ref": "#/configurations/abandons_config"
         }
       },
-      "cron": "10,40 * * * * *",
+      "cron": "0 0 */1 * * *",
       "customData": {}
     }
   },

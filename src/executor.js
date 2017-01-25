@@ -119,7 +119,7 @@ Executor.prototype.executeJobs = function(jobNames, deferred) {
 Executor.prototype.executeJob = function(job) {
 	var deferred = Q.defer();
 
-	log.debug('Executing job: ' + job.name);
+	log.debug('Executing job: ' + job.name + ' at ' + (new Date()));
 	var jobLog = new Logger('job:' + job.name);
 
 	// Execute each configuration in the job
