@@ -57,7 +57,14 @@ function getNodeArgs() {
 			if (key.startsWith('--'))
 				key = key.substr(2);
 
-			args[key.toLowerCase()] = value;
+			// Use boolean type or literal string value
+			if (value.toLowerCase() == 'true') {
+				args[key.toLowerCase()] = true;
+			} else if (value.toLowerCase() == 'false') {
+				args[key.toLowerCase()] = false;
+			} else {
+				args[key.toLowerCase()] = value;
+			}
 		} else {
 			// No equals sign, set whole thing as key and value->true
 			
