@@ -1,7 +1,8 @@
 
 {
-  "author": "ININ Developer Evangelists",
+  "author": "Genesys Developer Evangelists",
   "title": "Open Data Exporter",
+  "logo_url": "https://raw.githubusercontent.com/MyPureCloud/platform-client-sdk-java/master/genesys_64.png",
   "categories": [
     "applications"
   ],
