@@ -43,10 +43,10 @@ executor.initialize()
 
 				log.verbose('Running "' + jobObject.name + '" at interval "' + jobObject.cron + '"');
 				new CronJob(jobObject.cron, function() {
-					executor.executeJob(jobObject);
+					executor.executeJob(JSON.parse(JSON.stringify(jobObject)));
 				}, null, true);
 			} catch(ex) {
-			    console.log("cron pattern not valid");
+				console.log('cron pattern not valid');
 			}
 		});
 	})
