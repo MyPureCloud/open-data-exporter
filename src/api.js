@@ -1,60 +1,54 @@
-var purecloud = require('purecloud_api_sdk_javascript');
-var Q = require('q');
-var moment = require('moment');
+const platformClient = require('purecloud-platform-client-v2');
+const Q = require('q');
+const moment = require('moment');
 const _ = require('lodash');
+const Logger = require('lognext');
 
-var config = require('./config');
-var Logger = require('./logger');
+const config = require('./config');
 
+const log = new Logger('api');
 
-
-var log = new Logger('api');
 
 
 function Api() {
-	this.pureCloudSession = purecloud.PureCloudSession({
-		environment: config.settings.pureCloud.environment || 'mypurecloud.com',
-		strategy: 'client-credentials',
-		clientId: config.settings.pureCloud.clientId,
-		clientSecret: config.settings.pureCloud.clientSecret,
-		timeout: config.settings.pureCloud.timeout || 5000
-	});
+	this.client = platformClient.ApiClient.instance;
+	this.client.setEnvironment(config.settings.pureCloud.environment || 'mypurecloud.com');
 
 	// Instantiate APIs
-	this.analyticsApi = new purecloud.AnalyticsApi(this.pureCloudSession);
-	this.authorizationApi = new purecloud.AuthorizationApi(this.pureCloudSession);
-	this.usersApi = new purecloud.UsersApi(this.pureCloudSession);
-	this.conversationsApi = new purecloud.ConversationsApi(this.pureCloudSession);
-	this.routingApi = new purecloud.RoutingApi(this.pureCloudSession);
+	this.analyticsApi = new platformClient.AnalyticsApi();
+	this.authorizationApi = new platformClient.AuthorizationApi();
+	this.usersApi = new platformClient.UsersApi();
+	this.conversationsApi = new platformClient.ConversationsApi();
+	this.routingApi = new platformClient.RoutingApi();
 
 	if (config.args.debugapi === true) {
 		log.debug('debugging api');
-		this.pureCloudSession.debugLog = console.log;
+		this.client.setDebugLog(console.log, 25);
 	}
 }
 
 Api.prototype.login = function() {
-	var deferred = Q.defer();
+	let deferred = Q.defer();
 
-	if (!this.pureCloudSession.options.clientId || this.pureCloudSession.options.clientId === '') {
+	if (!config.settings.pureCloud.clientId || config.settings.pureCloud.clientId === '') {
 		deferred.reject(new Error('Authentication error: Client ID not set'));
 		return deferred.promise;
 	}
-	if (!this.pureCloudSession.options.clientSecret || this.pureCloudSession.options.clientSecret === '') {
+	if (!config.settings.pureCloud.clientSecret || config.settings.pureCloud.clientSecret === '') {
 		deferred.reject(new Error('Authentication error: Client Secret not set'));
 		return deferred.promise;
 	}
 
-	var startTime = new moment();
-	this.pureCloudSession.login()
+	let startTime = new moment();
+	this.client.loginClientCredentialsGrant(config.settings.pureCloud.clientId, config.settings.pureCloud.clientSecret)
 		.then(function() {
 			if (config.args.debugapi === true) 
 				log.verbose('Request "login" completed in ' + moment().diff(startTime, new moment()) + ' ms');
 			return deferred.resolve();
 		})
-		.catch(function(error) {
-			var e = new Error('Authentication failed! Check your Client ID and Secret');
-			log.error(error);
+		.catch(function(err) {
+			let e = new Error('Authentication failed! Check your Client ID and Secret');
+			log.error(err);
 			return deferred.reject(e);
 		});
 
@@ -71,8 +65,8 @@ Api.prototype.postConversationsDetailsQuery = function(request, _this, deferred,
 	if (!request.body.paging.pageSize || request.body.paging.pageSize > 100) request.body.paging.pageSize = 100;
 	if (!request.body.paging.pageNumber) request.body.paging.pageNumber = 1;
 
-	var startTime = new moment();
-	_this.analyticsApi.postConversationsDetailsQuery(JSON.stringify(request.body))
+	let startTime = new moment();
+	_this.analyticsApi.postAnalyticsConversationsDetailsQuery(JSON.stringify(request.body))
 		.then(function(result){
 			if (config.args.debugapi === true) 
 				log.verbose('Request "postConversationsDetailsQuery" completed in ' + moment().diff(startTime, new moment()) + ' ms');
@@ -111,11 +105,10 @@ Api.prototype.postConversationsDetailsQuery = function(request, _this, deferred,
 };
 
 Api.prototype.postConversationsAggregatesQuery = function(request) {
-	var deferred = Q.defer();
-	var body = {};
+	let deferred = Q.defer();
 
-	var startTime = new moment();
-	this.analyticsApi.postConversationsAggregatesQuery(JSON.stringify(request.body))
+	let startTime = new moment();
+	this.analyticsApi.postAnalyticsConversationsAggregatesQuery(JSON.stringify(request.body))
 		.then(function(result){
 			if (config.args.debugapi === true) 
 				log.verbose('Request "postConversationsAggregatesQuery" completed in ' + moment().diff(startTime, new moment()) + ' ms');
@@ -134,8 +127,8 @@ Api.prototype.postUsersAggregatesQuery = function(request, deferred, _this) {
 	if (!_this)
 		_this = this;
 
-	var startTime = new moment();
-	_this.analyticsApi.postUsersAggregatesQuery(JSON.stringify(request.body))
+	let startTime = new moment();
+	_this.analyticsApi.postAnalyticsUsersAggregatesQuery(JSON.stringify(request.body))
 		.then(function(result){
 			if (config.args.debugapi === true) 
 				log.verbose('Request "postUsersAggregatesQuery" completed in ' + moment().diff(startTime, new moment()) + ' ms');
@@ -169,8 +162,8 @@ Api.prototype.postUsersDetailsQuery = function(request, _this, deferred, results
 	if (!request.body.paging.pageSize || request.body.paging.pageSize > 100) request.body.paging.pageSize = 100;
 	if (!request.body.paging.pageNumber) request.body.paging.pageNumber = 1;
 
-	var startTime = new moment();
-	_this.analyticsApi.postUsersDetailsQuery(JSON.stringify(request.body))
+	let startTime = new moment();
+	_this.analyticsApi.postAnalyticsUsersDetailsQuery(JSON.stringify(request.body))
 		.then(function(result){
 			if (config.args.debugapi === true) 
 				log.verbose('Request "postUsersDetailsQuery" completed in ' + moment().diff(startTime, new moment()) + ' ms');
@@ -215,9 +208,9 @@ Api.prototype.getUsers = function(pageSize, pageNumber, id, sortOrder, expand, d
 		_this = this;
 
 	// This resource only accepts 100 user IDs at a time
-	var idList = '';
-	var idCount = 100;
-	var remainingIds = [];
+	let idList = '';
+	let idCount = 100;
+	let remainingIds = [];
 	if (Array.isArray(id)) {
 		if (id.length < idCount) {
 			idCount = id.length;
@@ -226,7 +219,7 @@ Api.prototype.getUsers = function(pageSize, pageNumber, id, sortOrder, expand, d
 		remainingIds = id.slice(idCount);
 	}
 
-	var startTime = new moment();
+	let startTime = new moment();
 	_this.usersApi.getUsers(pageSize, pageNumber, idList, sortOrder, expand)
 		.then(function(result){
 			if (config.args.debugapi === true) 
@@ -268,8 +261,8 @@ Api.prototype.getQueues = function(pageSize, pageNumber, sortBy, name, active, g
 	if (!_this)
 		_this = this;
 
-	var startTime = new moment();
-	_this.routingApi.getQueues(pageSize, pageNumber, sortBy, name, active)
+	let startTime = new moment();
+	_this.routingApi.getRoutingQueues(pageSize, pageNumber, sortBy, name, active)
 		.then(function(result){
 			if (config.args.debugapi === true) 
 				log.verbose('Request "getQueues" completed in ' + moment().diff(startTime, new moment()) + ' ms');
@@ -311,8 +304,8 @@ Api.prototype.getConversation = function(conversationId, deferred, _this) {
 	if (!_this)
 		_this = this;
 
-	var startTime = new moment();
-	_this.conversationsApi.getConversationId(conversationId)
+	let startTime = new moment();
+	_this.conversationsApi.getConversation(conversationId)
 		.then(function(result) {
 			if (config.args.debugapi === true) 
 				log.verbose('Request "getConversation" completed in ' + moment().diff(startTime, new moment()) + ' ms');
@@ -337,11 +330,10 @@ Api.prototype.getConversation = function(conversationId, deferred, _this) {
 };
 
 Api.prototype.getPermissions = function() {
-	var deferred = Q.defer();
-	var body = {};
+	let deferred = Q.defer();
 
-	var startTime = new moment();
-	this.authorizationApi.getPermissions()
+	let startTime = new moment();
+	this.authorizationApi.getAuthorizationPermissions({ pageSize: 100 })
 		.then(function(result){
 			if (config.args.debugapi === true) 
 				log.verbose('Request "getPermissions" completed in ' + moment().diff(startTime, new moment()) + ' ms');
@@ -362,7 +354,7 @@ module.exports = new Api();
 
 function retryOnError(error, retryFunction) {
 	// Default to wait a second before retrying
-	var sleepMs = 1000;
+	let sleepMs = 1000;
 
 	// Check for retryable status codes. 
 	// Set sleepMs to whatever is appropriate for the code.

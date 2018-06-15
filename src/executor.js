@@ -3,16 +3,14 @@ const refParser = require('json-schema-ref-parser');
 const dot = require('dot');
 const _ = require('lodash');
 const path = require('path');
-const mkdirp = require('mkdirp');
 const fs = require('fs');
+const Logger = require('lognext');
 
 
-var config = require('./config');
-var Logger = require('./logger');
-var packageData = require('./package.json');
-var api = require('./api');
-var helpers = require('./helpers');
-var TemplateDefinitions = require('./templateDefinitions');
+const config = require('./config');
+const api = require('./api');
+const helpers = require('./helpers');
+const TemplateDefinitions = require('./templateDefinitions');
 
 
 

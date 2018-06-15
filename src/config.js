@@ -1,9 +1,5 @@
-var fs = require('fs');
-var _ = require('lodash');
-var moment = require('moment');
-var colors = require('colors/safe');
-
-var constants = require('./constants');
+const _ = require('lodash');
+const colors = require('colors/safe');
 
 
 
@@ -39,17 +35,17 @@ function setCustomData(obj, customData) {
 }
 
 function getNodeArgs() {
-	var args = {};
+	let args = {};
 
 	// Parse into pretty object
-	for (i = 2; i < process.argv.length; i++) {
-		var arg = process.argv[i];
-		var index = arg.indexOf('=');
+	for (let i = 2; i < process.argv.length; i++) {
+		let arg = process.argv[i];
+		let index = arg.indexOf('=');
 
 		if (index > 0) {
 			// format was key=value
-			var key = arg.substr(0,index);
-			var value = arg.substr(index + 1);
+			let key = arg.substr(0,index);
+			let value = arg.substr(index + 1);
 
 			// Remove leading slash and dash
 			if (key.startsWith('/'))

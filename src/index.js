@@ -2,18 +2,13 @@
 // The purpose of this is for relative paths loaded in configs to be relative to the script, not where it was invoked from
 process.chdir(__dirname);
 
-var CronJob = require('cron').CronJob;
-var Q = require('q');
-var moment = require('moment');
-var colors = require('colors/safe');
-var refParser = require('json-schema-ref-parser');
-var fs = require('fs');
-var _ = require('lodash');
+const CronJob = require('cron').CronJob;
+const _ = require('lodash');
+const Logger = require('lognext');
 
-var config = require('./config');
-var Logger = require('./logger');
-var packageData = require('./package.json');
-var executor = require('./executor');
+const config = require('./config');
+const packageData = require('./package.json');
+const executor = require('./executor');
 
 
 

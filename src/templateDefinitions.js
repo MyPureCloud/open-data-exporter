@@ -2,10 +2,10 @@ var fs = require('fs');
 var path = require('path');
 var moment = require('moment-timezone');
 var _ = require('lodash');
+var Logger = require('lognext');
 
 var config = require('./config');
 var constants = require('./constants');
-var Logger = require('./logger');
 
 
 

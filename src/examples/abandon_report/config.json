@@ -11,7 +11,7 @@
       "strategy": "single",
       "getAllPages": true,
       "body": {
-        "interval": "{{#def.vars.previousInterval}}",
+        "interval": "{{#def.vars.currentInterval}}",
         "order": "asc",
         "orderBy": "conversationStart",
         "paging": {
