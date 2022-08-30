@@ -34,7 +34,7 @@
     "lognext": "0.0.4",
     "mkdirp": "^0.5.1",
     "moment": "^2.29.2",
-    "moment-timezone": "^0.5.17",
+    "moment-timezone": "^0.5.35",
     "purecloud-platform-client-v2": "^28.0.0",
     "q": "^1.5.1",
     "right-pad": "^1.0.1",
